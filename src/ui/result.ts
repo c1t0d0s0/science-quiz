@@ -1,4 +1,4 @@
-import { CATEGORIES, CATEGORY_LABEL, type Level, type Question } from '../core/quiz';
+import { CATEGORIES, CATEGORY_LABEL, LEVELS, type Level, type Question } from '../core/quiz';
 import { score } from '../core/storage';
 import { figure, h, hanamaru, homeButton, mark, paragraphs, withRuby } from './dom';
 import { LEVEL_LABEL, resultNote, resultTitle } from './text';
@@ -39,7 +39,8 @@ function reviewItem(q: Question, chosen: number, index: number): HTMLElement {
 export function renderResult(root: HTMLElement, level: Level, questions: Question[], answers: number[], celebrate: boolean): void {
   const correct = score(questions, answers);
   const total = questions.length;
-  const other: Level = level === 'lower' ? 'upper' : 'lower';
+  // 1 つ上の学年 (6 年生むけなら、1 つ下) の問題にもさそう
+  const other: Level = LEVELS[LEVELS.indexOf(level) + 1] ?? LEVELS[LEVELS.indexOf(level) - 1];
 
   const byCategory = CATEGORIES.map((c) => {
     const marks = questions.map((q, i) => ({ q, ok: answers[i] === q.answer })).filter((x) => x.q.category === c);

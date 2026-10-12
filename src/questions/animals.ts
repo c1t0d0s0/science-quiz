@@ -1,8 +1,8 @@
 import { shuffle } from '../core/rng';
 import { chainFig, insectFig, medakaFig } from '../diagrams/biology';
-import { choice, facts, fixed, int, KANA, numeric, oneOf, pick, type Gen } from './helpers';
+import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, type Entry, type Gen } from './helpers';
 
-// ---------- 3・4 年むけ ----------
+// ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
 const INSECTS = ['チョウ', 'バッタ', 'トンボ', 'カブトムシ', 'アリ', 'セミ', 'ハチ', 'テントウムシ', 'カマキリ'];
 const NOT_INSECTS = ['クモ', 'ダンゴムシ', 'ムカデ', 'ミミズ', 'カタツムリ', 'ザリガニ', 'ダニ'];
@@ -519,7 +519,21 @@ const upperBirth = facts('animals-u-birth', [
   },
 ]);
 
-export const ANIMALS = {
-  lower: [lowerInsect, lowerBody, lowerGrow, lowerWinter, lowerFood, lowerBones, lowerSeason],
-  upper: [upperMedaka, upperDigestion, upperHeart, upperBreath, upperVertebrate, upperChain, upperPlankton, upperBirth],
-};
+/** ジェネレーターと、それを出す学年 */
+export const ANIMALS: Entry[] = [
+  forGrades(lowerInsect, 3),
+  forGrades(lowerBody, 3),
+  forGrades(lowerFood, 3),
+  forGrades(lowerGrow, 3, 4),
+  forGrades(lowerWinter, 4),
+  forGrades(lowerBones, 4),
+  forGrades(lowerSeason, 4),
+  forGrades(upperMedaka, 5),
+  forGrades(upperBirth, 5),
+  forGrades(upperVertebrate, 5, 6),
+  forGrades(upperPlankton, 5, 6),
+  forGrades(upperDigestion, 6),
+  forGrades(upperHeart, 6),
+  forGrades(upperBreath, 6),
+  forGrades(upperChain, 6),
+];

@@ -1,10 +1,10 @@
 import { shuffle } from '../core/rng';
 import { moonFig, moonOrbitFig, moonRow, northSkyFig, orionFig, PHASE_NAME, shadowFig, type Phase } from '../diagrams/sky';
-import { choice, facts, fixed, int, KANA, numeric, oneOf, pick, type Gen } from './helpers';
+import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, type Entry, type Gen } from './helpers';
 
 const DIRS = ['東', '西', '南', '北'] as const;
 
-// ---------- 3・4 年むけ ----------
+// ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
 const lowerShadow: Gen = {
   id: 'space-l-shadow',
@@ -475,7 +475,21 @@ const upperPlanets = facts('space-u-planets', [
   },
 ]);
 
-export const SPACE = {
-  lower: [lowerShadow, lowerSun, lowerMoon, lowerTriangle, lowerOrion, lowerColor, lowerStars],
-  upper: [upperAltitude, upperDaily, upperYearly, upperMoonTime, upperOrbit, upperNoon, upperSeasons, upperPlanets],
-};
+/** ジェネレーターと、それを出す学年 */
+export const SPACE: Entry[] = [
+  forGrades(lowerShadow, 3),
+  forGrades(lowerSun, 3),
+  forGrades(lowerMoon, 3, 4),
+  forGrades(lowerTriangle, 4),
+  forGrades(lowerOrion, 4),
+  forGrades(lowerColor, 4),
+  forGrades(lowerStars, 4),
+  forGrades(upperDaily, 5),
+  forGrades(upperSeasons, 5),
+  forGrades(upperYearly, 5, 6),
+  forGrades(upperNoon, 5, 6),
+  forGrades(upperAltitude, 6),
+  forGrades(upperMoonTime, 6),
+  forGrades(upperOrbit, 6),
+  forGrades(upperPlanets, 6),
+];

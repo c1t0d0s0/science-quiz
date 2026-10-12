@@ -13,8 +13,8 @@ function route(): void {
   cleanup = null;
   shownDate = jstDate();
 
-  // #/quiz/lower は 3・4 年むけ、#/quiz/upper は 5・6 年むけ
-  const match = location.hash.match(/^#\/quiz\/(lower|upper)$/);
+  // #/quiz/g3 は 3 年生むけ … #/quiz/g6 は 6 年生むけ
+  const match = location.hash.match(/^#\/quiz\/(g[3-6])$/);
   if (match) cleanup = renderQuiz(app, match[1] as Level, shownDate);
   else renderHome(app);
   window.scrollTo(0, 0);

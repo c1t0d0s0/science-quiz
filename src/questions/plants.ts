@@ -1,8 +1,8 @@
 import { shuffle } from '../core/rng';
 import { flowerFig, plantFig } from '../diagrams/biology';
-import { choice, facts, fixed, int, KANA, numeric, oneOf, pick, type Gen } from './helpers';
+import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, type Entry, type Gen } from './helpers';
 
-// ---------- 3・4 年むけ ----------
+// ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
 const PARTS = [
   { key: 'root', name: '根', role: '土の中の水や養分をとり入れる', ex: '根は土の中に広がって、水や養分をとり入れ、からだをささえます。' },
@@ -387,8 +387,20 @@ const upperPhotosynthesis = facts('plants-u-photosynthesis', [
   },
 ]);
 
-export const PLANTS = {
-  lower: [lowerParts, lowerSeason, lowerHechima, lowerWinter, lowerSprout, lowerFlowers],
-  upper: [upperSprout, upperSeed, upperTranspiration, upperFlower, upperPollination, upperClass, upperPetal, upperPhotosynthesis],
-};
-
+/** ジェネレーターと、それを出す学年 */
+export const PLANTS: Entry[] = [
+  forGrades(lowerParts, 3),
+  forGrades(lowerSprout, 3),
+  forGrades(lowerSeason, 3, 4),
+  forGrades(lowerHechima, 4),
+  forGrades(lowerWinter, 4),
+  forGrades(lowerFlowers, 4, 5),
+  forGrades(upperSprout, 5),
+  forGrades(upperSeed, 5),
+  forGrades(upperFlower, 5),
+  forGrades(upperPollination, 5),
+  forGrades(upperClass, 5, 6),
+  forGrades(upperTranspiration, 6),
+  forGrades(upperPetal, 6),
+  forGrades(upperPhotosynthesis, 6),
+];

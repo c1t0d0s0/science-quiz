@@ -1,9 +1,9 @@
 import { shuffle } from '../core/rng';
 import { heatingFig, solubilityFig } from '../diagrams/graph';
 import { fig, circle, line, rect, tag, text, polygon } from '../diagrams/svg';
-import { choice, facts, fixed, int, KANA, numeric, oneOf, pick, sample, type Gen } from './helpers';
+import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, sample, type Entry, type Gen } from './helpers';
 
-// ---------- 3・4 年むけ ----------
+// ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
 /** 同じ体積で重い順 */
 const HEAVY = ['銅', '鉄', 'アルミニウム', '木', '発ぽうスチロール'];
@@ -33,19 +33,101 @@ const lowerWeight: Gen = {
           explanation: `立ち方やしせいを変えても、重さは変わりません。かた足で立っても${kg}kgです。`,
         });
       },
-      () => {
-        const items = sample(rng, HEAVY, 4);
-        const heaviest = rng() < 0.5;
-        const sorted = HEAVY.filter((m) => items.includes(m));
-        const correct = heaviest ? sorted[0] : sorted[3];
-        return choice(rng, {
-          text: `同じ大きさ（体積）の、次の4つのもののうち、いちばん${heaviest ? '重い' : '軽い'}ものはどれですか。`,
-          correct,
-          wrong: items.filter((m) => m !== correct),
-          explanation: `同じ体積でも、ものの種類によって重さはちがいます。重い順にならべると、${sorted.join(' → ')} です。`,
-        });
-      },
     ])(),
+};
+
+const lowerMaterial: Gen = {
+  id: 'matter-l-material',
+  make: (rng) => {
+    const items = sample(rng, HEAVY, 4);
+    const heaviest = rng() < 0.5;
+    const sorted = HEAVY.filter((m) => items.includes(m));
+    const correct = heaviest ? sorted[0] : sorted[3];
+    return choice(rng, {
+      text: `同じ大きさ（体積）の、次の4つのもののうち、いちばん${heaviest ? '重い' : '軽い'}ものはどれですか。`,
+      correct,
+      wrong: items.filter((m) => m !== correct),
+      explanation: `同じ体積でも、ものの種類によって重さはちがいます。重い順にならべると、${sorted.join(' → ')} です。`,
+    });
+  },
+};
+
+const ATTRACTED = ['鉄のくぎ', 'スチールかん', 'ゼムクリップ（鉄）', '鉄のはさみの刃', 'さ鉄'];
+const NOT_ATTRACTED = ['アルミかん', '10円玉', '1円玉', 'ガラスのコップ', '木のわりばし', 'アルミニウムはく', '消しゴム'];
+
+const lowerMagnet: Gen = {
+  id: 'matter-l-magnet',
+  make: (rng) =>
+    pick(rng, [
+      () =>
+        oneOf(rng, {
+          text: '次のもののうち、じしゃくにつくものはどれですか。',
+          yes: ATTRACTED,
+          no: NOT_ATTRACTED,
+          explanation: 'じしゃくにつくのは、鉄でできたものです。アルミニウムや銅（10円玉）は金属ですが、じしゃくにはつきません。',
+        }),
+      () =>
+        oneOf(rng, {
+          text: '次のもののうち、電気は通すが、じしゃくにはつかないものはどれですか。',
+          yes: ['アルミかん', '10円玉', '1円玉', 'アルミニウムはく'],
+          no: ['鉄のくぎ', 'スチールかん', 'ガラスのコップ', '木のわりばし', '消しゴム', 'ゼムクリップ（鉄）'],
+          explanation: '金属はどれも電気を通しますが、じしゃくにつくのは鉄などの一部の金属だけです。アルミニウムや銅は、電気は通しますが、じしゃくにはつきません。',
+        }),
+      () =>
+        choice(rng, {
+          text: '2つのじしゃくのN極とN極を近づけると、どうなりますか。',
+          correct: 'しりぞけ合う',
+          wrong: ['引き合う', '何も起こらない', 'じしゃくの力がなくなる'],
+          explanation: 'じしゃくは、同じ極どうし（N極とN極、S極とS極）はしりぞけ合い、ちがう極どうし（N極とS極）は引き合います。',
+        }),
+      () =>
+        choice(rng, {
+          text: 'ぼうじしゃくで、鉄を引きつける力がいちばん強いのはどこですか。',
+          correct: '両はし（N極とS極）',
+          wrong: ['まん中', 'N極だけ', 'どこも同じ'],
+          explanation: 'じしゃくの両はしを極といい、鉄を引きつける力がいちばん強いところです。まん中は、ほとんど引きつけません。',
+        }),
+      () =>
+        choice(rng, {
+          text: 'じしゃくに鉄のくぎをしばらくつけておいてからはなすと、そのくぎはどうなりますか。',
+          correct: 'じしゃくになり、ほかの鉄を引きつける',
+          wrong: ['鉄ではなくなる', '重くなる', '電気を通さなくなる'],
+          explanation: '鉄は、じしゃくにつけておくと、じしゃくの性質をもつようになります。N極とS極もできます。',
+        }),
+    ])(),
+};
+
+const lowerVolume: Gen = {
+  id: 'matter-l-volume',
+  make: (rng) => {
+    const water = pick(rng, [40, 50, 60, 70]);
+    const stone = pick(rng, [10, 15, 20, 25, 30]);
+    return pick(rng, [
+      () =>
+        numeric(rng, {
+          text: `水が${water}mL入っているメスシリンダーに石をしずめると、水面の目もりは${water + stone}mLになりました。石のかさ（体積）は、水何mL分ですか。`,
+          correct: stone,
+          wrong: [water + stone, water, stone + 10, stone * 2, stone + 5],
+          unit: 'mL',
+          explanation: `石をしずめると、石のかさの分だけ水面が上がります。${water + stone} − ${water} ＝ ${stone}（mL）です。`,
+        }),
+      () =>
+        numeric(rng, {
+          text: `重さ${water}gの入れ物に、${stone * 10}gの水を入れました。全体の重さは何gになりますか。`,
+          correct: water + stone * 10,
+          wrong: [stone * 10, stone * 10 - water, water + stone * 10 + 10, water + stone * 10 - 10, (water + stone * 10) * 2],
+          unit: 'g',
+          explanation: `ものの重さは、合わせると足し算になります。${water} ＋ ${stone * 10} ＝ ${water + stone * 10}（g）です。`,
+        }),
+      () =>
+        choice(rng, {
+          text: `${stone * 10}gのさとうを、${water * 10}gの水に全部とかしました。さとう水の重さはどうなりますか。`,
+          correct: `${stone * 10 + water * 10}gになる`,
+          wrong: [`${water * 10}gのまま変わらない`, `${water * 10}gより少し軽くなる`, `${stone * 10 + water * 10}gより重くなる`],
+          explanation: `さとうは水にとけて見えなくなっても、なくなったわけではありません。重さは ${water * 10} ＋ ${stone * 10} ＝ ${stone * 10 + water * 10}（g）です。`,
+        }),
+    ])();
+  },
 };
 
 const lowerAir = facts('matter-l-air', [
@@ -312,6 +394,52 @@ const upperSolubility: Gen = {
   },
 };
 
+const upperDissolve: Gen = {
+  id: 'matter-u-dissolve',
+  make: (rng) =>
+    pick(rng, [
+      () => {
+        const water = pick(rng, [50, 100, 150, 200]);
+        const salt = pick(rng, [5, 10, 15, 20]);
+        return numeric(rng, {
+          text: `水${water}gに食塩${salt}gを入れて、全部とかしました。できた食塩水の重さは何gですか。`,
+          correct: water + salt,
+          wrong: [water, water - salt, water + salt * 2, water + salt + 10, salt],
+          unit: 'g',
+          explanation: `とけて見えなくなっても、食塩はなくなっていません。水よう液の重さは、水の重さととかしたものの重さの和なので、${water} ＋ ${salt} ＝ ${water + salt}（g）です。`,
+        });
+      },
+      () =>
+        choice(rng, {
+          text: '水の温度を上げたとき、とける量があまり変わらないものはどれですか。',
+          correct: '食塩',
+          wrong: ['ミョウバン', 'ホウ酸', 'しょう酸カリウム', 'さとう'],
+          explanation: '食塩は、水の温度を上げてもとける量がほとんど変わりません。ミョウバンやホウ酸は、温度が高いほどたくさんとけます。',
+        }),
+      () =>
+        choice(rng, {
+          text: '食塩水から食塩の結しょうをとり出すには、どの方法がよいですか。',
+          correct: '加熱して、水をじょう発させる',
+          wrong: ['氷水で冷やす', 'ろ紙でろ過する', 'よくかきまぜる'],
+          explanation: '食塩は温度によってとける量がほとんど変わらないので、冷やしてもあまり出てきません。水をじょう発させてとり出します。とけているものは、ろ紙を通りぬけます。',
+        }),
+      () =>
+        choice(rng, {
+          text: 'ろ過のしかたとして正しいものはどれですか。',
+          correct: '液をガラスぼうに伝わらせて、少しずつ注ぐ',
+          wrong: ['液をろうとに直接いきおいよく注ぐ', 'ろうとの先を、ビーカーのかべからはなしておく', 'ろ紙は、水でぬらさずにそのまま使う'],
+          explanation: 'ろ過では、ろ紙を水でぬらしてろうとにぴったりつけ、液はガラスぼうに伝わらせて注ぎます。ろうとの先は、ビーカーのかべにつけておきます。',
+        }),
+      () =>
+        choice(rng, {
+          text: '決まった量の水にとけるものの量をふやすには、水の温度を上げるほかに、どんな方法がありますか。',
+          correct: '水の量をふやす',
+          wrong: ['長い時間かきまぜる', 'とかすものを細かくくだく', '入れ物を大きくする'],
+          explanation: 'とける量は、水の量に比例します。かきまぜたり細かくしたりすると、とける速さは速くなりますが、とける量は変わりません。',
+        }),
+    ])(),
+};
+
 const SOLUTIONS = [
   { name: '塩酸', nature: '酸性', solute: '気体' },
   { name: '炭酸水', nature: '酸性', solute: '気体' },
@@ -553,7 +681,23 @@ const upperMetal = facts('matter-u-metal', [
   },
 ]);
 
-export const MATTER = {
-  lower: [lowerWeight, lowerAir, lowerExpand, lowerState, lowerHeat],
-  upper: [upperConcentration, upperSolubility, upperSolution, upperSolute, upperGas, upperBurn, upperNeutral, upperMetal],
-};
+/** ジェネレーターと、それを出す学年 */
+export const MATTER: Entry[] = [
+  forGrades(lowerWeight, 3),
+  forGrades(lowerMagnet, 3),
+  forGrades(lowerVolume, 3),
+  forGrades(lowerMaterial, 3, 4),
+  forGrades(lowerAir, 4),
+  forGrades(lowerExpand, 4),
+  forGrades(lowerState, 4),
+  forGrades(lowerHeat, 4),
+  forGrades(upperConcentration, 5),
+  forGrades(upperSolubility, 5),
+  forGrades(upperDissolve, 5),
+  forGrades(upperSolute, 5, 6),
+  forGrades(upperSolution, 6),
+  forGrades(upperGas, 6),
+  forGrades(upperBurn, 6),
+  forGrades(upperNeutral, 6),
+  forGrades(upperMetal, 6),
+];

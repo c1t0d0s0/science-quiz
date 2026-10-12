@@ -12,13 +12,13 @@ import {
   type Frac,
   type Wiring,
 } from '../diagrams/circuit';
-import { choice, facts, fixed, KANA, oneOf, pick, sample, type Gen } from './helpers';
+import { choice, facts, fixed, forGrades, KANA, oneOf, pick, sample, type Entry, type Gen } from './helpers';
 
 const one: Circuit = { cells: 1, cellMode: 's', bulbs: 1, bulbMode: 's' };
 const cells = (n: number, mode: 's' | 'p'): Circuit => ({ ...one, cells: n, cellMode: mode });
 const bulbs = (n: number, mode: 's' | 'p'): Circuit => ({ ...one, bulbs: n, bulbMode: mode });
 
-// ---------- 3・4 年むけ ----------
+// ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
 const lowerWiring: Gen = {
   id: 'bulbs-l-wiring',
@@ -66,6 +66,39 @@ const lowerConduct: Gen = {
         }),
     ])(),
 };
+
+const lowerBasics = facts('bulbs-l-basics', [
+  {
+    q: '乾電池の＋極、豆電球、乾電池の－極が、1つの輪のように導線でつながった電気の通り道を何といいますか。',
+    a: '回路',
+    wrong: ['電流', 'ソケット', 'スイッチ', 'フィラメント'],
+    ex: '電気の通り道を回路といいます。回路が1つの輪のようにつながっているとき、電気が流れて豆電球に明かりがつきます。',
+  },
+  {
+    q: '豆電球の中にあり、電気が流れると光る細い線を何といいますか。',
+    a: 'フィラメント',
+    wrong: ['ソケット', '導線', 'エナメル線', 'ガラス球'],
+    ex: '豆電球の中の細い線をフィラメントといいます。電気が流れると、フィラメントが熱くなって光ります。',
+  },
+  {
+    q: '回路は正しくつないであるのに、豆電球の明かりがつきません。まず調べることとして、あてはまらないものはどれですか。',
+    a: '豆電球のガラスの色',
+    wrong: ['豆電球がソケットにしっかり入っているか', '乾電池が古くなっていないか', '導線が乾電池の極からはなれていないか', 'フィラメントが切れていないか'],
+    ex: '明かりがつかないときは、豆電球がゆるんでいないか、フィラメントが切れていないか、導線がはなれていないか、乾電池が古くないかを調べます。',
+  },
+  {
+    q: 'ソケットを使わずに、豆電球と乾電池と導線1本で明かりをつけます。導線を乾電池の－極につないだとき、もう一方のはしは豆電球のどこにつけますか。豆電球の下の先は、乾電池の＋極につけてあります。',
+    a: '豆電球の口金の横（ねじのところ）',
+    wrong: ['豆電球のガラスのところ', '豆電球の下の先', 'どこにつけてもよい'],
+    ex: '豆電球は、下の先と、口金の横（ねじのところ）が、中のフィラメントの両はしにつながっています。この2か所を通るように回路をつくると、明かりがつきます。',
+  },
+  {
+    q: '導線は、銅の線のまわりをビニルでおおってあります。回路をつくるとき、導線のはしのビニルをむくのはなぜですか。',
+    a: 'ビニルは電気を通さないから',
+    wrong: ['ビニルは電気をよく通すから', '銅は電気を通さないから', '導線を軽くするため'],
+    ex: 'ビニルは電気を通しません。中の銅の線を出して、乾電池や豆電球に直接つけると、電気が通ります。',
+  },
+]);
 
 const lowerCompare: Gen = {
   id: 'bulbs-l-compare',
@@ -369,7 +402,19 @@ const upperDevices = facts('bulbs-u-devices', [
   },
 ]);
 
-export const BULBS = {
-  lower: [lowerWiring, lowerConduct, lowerCompare, lowerName, lowerRemove, lowerMotor],
-  upper: [upperCurrent, upperCell, upperBrightest, upperLife, upperMixed, upperDevices],
-};
+/** ジェネレーターと、それを出す学年 */
+export const BULBS: Entry[] = [
+  forGrades(lowerWiring, 3),
+  forGrades(lowerConduct, 3),
+  forGrades(lowerBasics, 3),
+  forGrades(lowerCompare, 4),
+  forGrades(lowerName, 4),
+  forGrades(lowerMotor, 4),
+  forGrades(lowerRemove, 4, 5),
+  forGrades(upperCurrent, 5, 6),
+  forGrades(upperBrightest, 5, 6),
+  forGrades(upperLife, 5, 6),
+  forGrades(upperCell, 6),
+  forGrades(upperMixed, 6),
+  forGrades(upperDevices, 6),
+];

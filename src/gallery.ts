@@ -1,7 +1,7 @@
 // 全部のジェネレーターが作る問題を、図といっしょにならべて確かめるためのページ (gallery.html)。
-// ?n=3 で 1 つのジェネレーターあたりの見本の数、?level=upper でレベル、?only=lever でカテゴリーをしぼれる。
+// ?n=3 で 1 つのジェネレーターあたりの見本の数、?level=g5 でレベル (学年)、?only=lever でカテゴリーをしぼれる。
 import './styles.css';
-import { CATEGORIES, CATEGORY_LABEL, LEVELS } from './core/quiz';
+import { CATEGORIES, CATEGORY_LABEL, LEVELS, withFurigana } from './core/quiz';
 import { rngFromString } from './core/rng';
 import { GENERATORS } from './questions';
 import { addRuby } from './questions/ruby';
@@ -16,7 +16,7 @@ const figsOnly = params.has('figs');
 const page = h('main', { class: 'result-page', style: figsOnly ? 'max-width:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(20rem,1fr));gap:0.75rem' : '' });
 
 for (const level of LEVELS.filter((l) => !params.get('level') || params.get('level') === l)) {
-  const ruby = level === 'lower' ? addRuby : (s: string) => s;
+  const ruby = withFurigana(level) ? addRuby : (s: string) => s;
   for (const category of CATEGORIES.filter((c) => !params.get('only') || params.get('only') === c)) {
     if (!figsOnly) page.append(h('h2', {}, `${LEVEL_LABEL[level]} ／ ${CATEGORY_LABEL[category]}`));
     for (const gen of GENERATORS[level][category]) {

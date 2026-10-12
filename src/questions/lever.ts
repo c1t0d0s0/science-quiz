@@ -1,6 +1,6 @@
 import { shuffle, type Rng } from '../core/rng';
 import { beam, leverPoints, mobile, tickLever, wheelAxle } from '../diagrams/lever';
-import { facts, fixed, int, KANA, numeric, oneOf, pick, type Gen } from './helpers';
+import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, type Entry, type Gen } from './helpers';
 
 /** 重さ (10g きざみ) と目もり (1〜6) で、左右がつり合う組み合わせをえらぶ */
 function balanced(rng: Rng): { w1: number; d1: number; w2: number; d2: number } {
@@ -13,7 +13,7 @@ function balanced(rng: Rng): { w1: number; d1: number; w2: number; d2: number } 
   }
 }
 
-// ---------- 3・4 年むけ ----------
+// ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
 const lowerBalance: Gen = {
   id: 'lever-l-balance',
@@ -155,6 +155,45 @@ const lowerRule = facts('lever-l-rule', [
     ex: 'てこをかたむけるはたらきは「おもりの重さ × 支点からのきょり」で表せます。これが左右で等しいとき、てこは水平につり合います。',
   },
 ]);
+
+const lowerSeesaw: Gen = {
+  id: 'lever-l-seesaw',
+  make: (rng) =>
+    pick(rng, [
+      () => {
+        const kg = pick(rng, [20, 24, 25, 30]);
+        const d = pick(rng, [1, 2, 3]);
+        return numeric(rng, {
+          text: `シーソーの左がわの、まん中（支点）から${d}mのところに、体重${kg}kgの人がすわりました。同じ体重${kg}kgの人が右がわにすわってつり合わせるには、支点から何mのところにすわればよいですか。`,
+          correct: d,
+          wrong: [d * 2, d / 2, d + 1, d + 2],
+          unit: 'm',
+          explanation: `同じ重さどうしは、支点から同じきょりのところでつり合います。だから${d}mのところです。`,
+        });
+      },
+      () =>
+        choice(rng, {
+          text: '体重の重い人と軽い人がシーソーに乗ります。つり合わせるには、どうすればよいですか。',
+          correct: '重い人が、まん中（支点）の近くにすわる',
+          wrong: ['軽い人が、まん中（支点）の近くにすわる', '2人とも、いちばんはしにすわる', 'どこにすわっても、つり合わない'],
+          explanation: '支点から遠いほど、シーソーをかたむけるはたらきは大きくなります。重い人が支点の近くに、軽い人が遠くにすわると、つり合います。',
+        }),
+      () =>
+        choice(rng, {
+          text: '同じ体重の2人が、シーソーのまん中（支点）から同じきょりのところにすわっています。左の人だけが、まん中に近づくと、シーソーはどうなりますか。',
+          correct: '右が下がる',
+          wrong: ['左が下がる', 'つり合ったまま', '左右にゆれつづける'],
+          explanation: '支点に近づくと、かたむけるはたらきは小さくなります。左の人のはたらきが小さくなるので、右が下がります。',
+        }),
+      () =>
+        choice(rng, {
+          text: 'てんびんの左右の皿に同じ重さのものをのせると、てんびんはどうなりますか。',
+          correct: '水平につり合う',
+          wrong: ['左が下がる', '右が下がる', '大きいものをのせた方が下がる'],
+          explanation: 'てんびんは、支点から左右の皿までのきょりが同じなので、左右の重さが同じとき水平につり合います。大きさではなく、重さで決まります。',
+        }),
+    ])(),
+};
 
 // ---------- 5・6 年むけ ----------
 
@@ -347,8 +386,20 @@ const upperTypes = facts('lever-u-types', [
   },
 ]);
 
-export const LEVER = {
-  lower: [lowerBalance, lowerTilt, lowerPosition, lowerPoints, lowerTools, lowerRule],
-  upper: [upperTwo, upperBarWeight, upperScales, upperFulcrum, upperWheel, upperMobile, upperTypes],
-};
-
+/** ジェネレーターと、それを出す学年 */
+export const LEVER: Entry[] = [
+  forGrades(lowerPoints, 3),
+  forGrades(lowerSeesaw, 3),
+  forGrades(lowerTilt, 3, 4),
+  forGrades(lowerRule, 3, 4),
+  forGrades(lowerBalance, 4),
+  forGrades(lowerPosition, 4),
+  forGrades(lowerTools, 4),
+  forGrades(upperTwo, 5),
+  forGrades(upperFulcrum, 5),
+  forGrades(upperWheel, 5, 6),
+  forGrades(upperTypes, 5, 6),
+  forGrades(upperBarWeight, 6),
+  forGrades(upperScales, 6),
+  forGrades(upperMobile, 6),
+];

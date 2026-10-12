@@ -1,6 +1,12 @@
-/** lower = 3・4 年むけ、upper = 5・6 年むけ */
-export type Level = 'lower' | 'upper';
-export const LEVELS: readonly Level[] = ['lower', 'upper'];
+/** g3 = 3 年生むけ … g6 = 6 年生むけ */
+export type Level = 'g3' | 'g4' | 'g5' | 'g6';
+export const LEVELS: readonly Level[] = ['g3', 'g4', 'g5', 'g6'];
+
+/** レベルの学年 (3〜6) */
+export const GRADE: Record<Level, number> = { g3: 3, g4: 4, g5: 5, g6: 6 };
+
+/** ふりがなをつけるレベル */
+export const withFurigana = (level: Level) => GRADE[level] <= 4;
 
 export type Category = 'plants' | 'animals' | 'space' | 'matter' | 'bulbs' | 'lever' | 'pulley';
 export const CATEGORIES: readonly Category[] = ['plants', 'animals', 'space', 'matter', 'bulbs', 'lever', 'pulley'];

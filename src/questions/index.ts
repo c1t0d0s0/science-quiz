@@ -1,14 +1,14 @@
-import type { Category, Level } from '../core/quiz';
+import { CATEGORIES, GRADE, LEVELS, type Category, type Level } from '../core/quiz';
 import { ANIMALS } from './animals';
 import { BULBS } from './bulbs';
-import type { Gen } from './helpers';
+import type { Entry, Gen } from './helpers';
 import { LEVER } from './lever';
 import { MATTER } from './matter';
 import { PLANTS } from './plants';
 import { PULLEY } from './pulley';
 import { SPACE } from './space';
 
-const SETS: Record<Category, Record<Level, Gen[]>> = {
+const SETS: Record<Category, Entry[]> = {
   plants: PLANTS,
   animals: ANIMALS,
   space: SPACE,
@@ -18,8 +18,10 @@ const SETS: Record<Category, Record<Level, Gen[]>> = {
   pulley: PULLEY,
 };
 
-/** レベル → カテゴリー → 問題のジェネレーター */
-export const GENERATORS: Record<Level, Record<Category, Gen[]>> = {
-  lower: Object.fromEntries(Object.entries(SETS).map(([c, set]) => [c, set.lower])) as Record<Category, Gen[]>,
-  upper: Object.fromEntries(Object.entries(SETS).map(([c, set]) => [c, set.upper])) as Record<Category, Gen[]>,
-};
+const forLevel = (level: Level) =>
+  Object.fromEntries(
+    CATEGORIES.map((c) => [c, SETS[c].filter((e) => e.grades.includes(GRADE[level])).map((e) => e.gen)]),
+  ) as Record<Category, Gen[]>;
+
+/** レベル (学年) → カテゴリー → 問題のジェネレーター */
+export const GENERATORS = Object.fromEntries(LEVELS.map((level) => [level, forLevel(level)])) as Record<Level, Record<Category, Gen[]>>;

@@ -1,5 +1,5 @@
 import { addDays } from './date';
-import type { Level, Question } from './quiz';
+import { LEVELS, type Level, type Question } from './quiz';
 
 const PREFIX = 'science-quiz:v1:';
 
@@ -58,11 +58,11 @@ export function isDone(date: string, level: Level): boolean {
   return (read<Record<string, number>>(`done:${level}`) ?? {})[date] !== undefined;
 }
 
-/** 今日までつづけて、毎日 (どちらかのレベルを) とき終えた日数。今日がまだなら、きのうまでを数える */
+/** 今日までつづけて、毎日 (どれかの学年を) とき終えた日数。今日がまだなら、きのうまでを数える */
 export function currentStreak(today: string): number {
-  const lower = read<Record<string, number>>('done:lower') ?? {};
-  const upper = read<Record<string, number>>('done:upper') ?? {};
-  const played = (d: string) => lower[d] !== undefined || upper[d] !== undefined;
+  // lower・upper は、レベルが 2 つだったころの記録
+  const records = [...LEVELS, 'lower', 'upper'].map((level) => read<Record<string, number>>(`done:${level}`) ?? {});
+  const played = (d: string) => records.some((r) => r[d] !== undefined);
   let day = played(today) ? today : addDays(today, -1);
   let n = 0;
   while (played(day)) {

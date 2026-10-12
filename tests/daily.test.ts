@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dailyCategories, dailyQuestions } from '../src/core/daily';
 import { addDays, dayNumber, jstDate } from '../src/core/date';
-import { CATEGORIES, DAILY_COUNT, LEVELS } from '../src/core/quiz';
+import { CATEGORIES, DAILY_COUNT, LEVELS, type Level } from '../src/core/quiz';
 import { assertValid } from './helpers';
 
 const START = '2026-10-01';
@@ -44,17 +44,17 @@ describe('今日の 10 問', () => {
   });
 
   it('日付やレベルが変わると、問題が変わる', () => {
-    const key = (date: string, level: 'lower' | 'upper') => JSON.stringify(dailyQuestions(date, level).map((q) => [q.id, q.text, q.choices]));
+    const key = (date: string, level: Level) => JSON.stringify(dailyQuestions(date, level).map((q) => [q.id, q.text, q.choices]));
     for (let i = 0; i < 60; i++) {
       const date = addDays(START, i);
-      expect(key(date, 'lower')).not.toBe(key(addDays(date, 1), 'lower'));
-      expect(key(date, 'upper')).not.toBe(key(addDays(date, 1), 'upper'));
-      expect(key(date, 'lower')).not.toBe(key(date, 'upper'));
+      for (const level of LEVELS) expect(key(date, level)).not.toBe(key(addDays(date, 1), level));
+      // どの学年どうしも、ちがう問題になる
+      expect(new Set(LEVELS.map((level) => key(date, level))).size).toBe(LEVELS.length);
     }
   });
 
-  it('3・4 年むけには、ふりがながつく', () => {
-    const texts = Array.from({ length: 30 }, (_, i) => dailyQuestions(addDays(START, i), 'lower').map((q) => q.text + q.explanation)).flat().join('');
+  it('3 年生むけには、ふりがながつく', () => {
+    const texts = Array.from({ length: 30 }, (_, i) => dailyQuestions(addDays(START, i), 'g3').map((q) => q.text + q.explanation)).flat().join('');
     expect(texts).toMatch(/豆電球\(まめでんきゅう\)/);
     expect(texts).toMatch(/支点\(してん\)/);
   });

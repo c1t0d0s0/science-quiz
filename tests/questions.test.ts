@@ -7,7 +7,8 @@ import type { Gen } from '../src/questions/helpers';
 import { addRuby } from '../src/questions/ruby';
 import { assertValid } from './helpers';
 
-const ALL: Gen[] = LEVELS.flatMap((level) => CATEGORIES.flatMap((c) => GENERATORS[level][c]));
+// いくつかの学年に出すジェネレーターは、1 回だけ数える
+const ALL: Gen[] = [...new Set(LEVELS.flatMap((level) => CATEGORIES.flatMap((c) => GENERATORS[level][c])))];
 const byId = (id: string) => ALL.find((g) => g.id === id)!;
 const RUNS = 300;
 
@@ -23,8 +24,8 @@ function each(id: string, check: (text: string, correct: string, alt: string) =>
 const numbers = (s: string) => (s.match(/\d+(\.\d+)?/g) ?? []).map(Number);
 
 describe('問題のジェネレーター', () => {
-  it('カテゴリーごとに、2 問出せるだけの数がある', () => {
-    for (const level of LEVELS) for (const c of CATEGORIES) expect(GENERATORS[level][c].length, `${level} ${c}`).toBeGreaterThanOrEqual(5);
+  it('どの学年にも、カテゴリーごとに 3 つ以上ある (1 日に 2 問まで出す)', () => {
+    for (const level of LEVELS) for (const c of CATEGORIES) expect(GENERATORS[level][c].length, `${level} ${c}`).toBeGreaterThanOrEqual(3);
     expect(new Set(ALL.map((g) => g.id)).size).toBe(ALL.length);
   });
 

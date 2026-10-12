@@ -304,12 +304,32 @@ rt {
   border-left: 0.5rem solid var(--rule);
 }
 
-.daily.level-upper {
+/* 学年のカード。広い画面では 2 列にならべる */
+.levels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
+}
+
+@media (min-width: 40rem) {
+  .levels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ならんだカードの中身は、上にそろえる */
+.levels .daily {
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.daily.level-g5,
+.daily.level-g6 {
   border-left-color: var(--ink);
 }
 
 .daily-text {
-  flex: 1 1 14rem;
+  flex: 1 1 11rem;
 }
 
 .home .daily-level {

@@ -72,9 +72,9 @@ export function renderHome(root: HTMLElement): void {
           { class: 'today', 'aria-labelledby': 'today-title' },
           h('h2', { id: 'today-title' }, '今日の10問'),
           h('p', { class: 'daily-date' }, dateLabel(today)),
-          h('p', { class: 'section-note' }, streak > 1 ? `${streak}日つづけて、とき終えています。その調子！` : '学年に合わせて、レベルをえらぼう。両方といてもOK。'),
+          h('p', { class: 'section-note' }, streak > 1 ? `${streak}日つづけて、とき終えています。その調子！` : '自分の学年をえらぼう。ほかの学年にちょうせんしてもOK。'),
         ),
-        ...LEVELS.map((level) => levelCard(level, today)),
+        h('div', { class: 'levels' }, ...LEVELS.map((level) => levelCard(level, today))),
       ),
       h(
         'aside',

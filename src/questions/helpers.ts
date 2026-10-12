@@ -9,6 +9,14 @@ export interface Gen {
   make: (rng: Rng) => Draft;
 }
 
+/** ジェネレーターと、それを出す学年 (3〜6) */
+export interface Entry {
+  gen: Gen;
+  grades: readonly number[];
+}
+
+export const forGrades = (gen: Gen, ...grades: number[]): Entry => ({ gen, grades });
+
 export const int = (rng: Rng, min: number, max: number) => min + Math.floor(rng() * (max - min + 1));
 export const pick = <T>(rng: Rng, items: readonly T[]): T => items[Math.floor(rng() * items.length)];
 export const sample = <T>(rng: Rng, items: readonly T[], n: number): T[] => shuffle(items, rng).slice(0, n);

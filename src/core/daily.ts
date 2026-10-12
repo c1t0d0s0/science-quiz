@@ -1,7 +1,7 @@
 import { GENERATORS } from '../questions';
 import { addRuby } from '../questions/ruby';
 import { dayNumber } from './date';
-import { CATEGORIES, type Category, type Level, type Question } from './quiz';
+import { CATEGORIES, withFurigana, type Category, type Level, type Question } from './quiz';
 import { rngFromString, shuffle } from './rng';
 
 /**
@@ -27,7 +27,7 @@ export function dailyQuestions(date: string, level: Level): Question[] {
     for (const gen of picked) {
       // 問題ごとに乱数を分ける (ジェネレーターを足しても、ほかの問題の中身が変わらない)
       const q = gen.make(rngFromString(`${date}:${level}:${gen.id}`));
-      const ruby = level === 'lower' ? addRuby : (s: string) => s;
+      const ruby = withFurigana(level) ? addRuby : (s: string) => s;
       questions.push({
         id: gen.id,
         category,

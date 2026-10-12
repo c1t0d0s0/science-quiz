@@ -1,9 +1,9 @@
 import { cascadePulley, comboPulley, fixedPulley, movablePulley, tacklePulley } from '../diagrams/pulley';
-import { facts, int, numeric, pick, type Gen } from './helpers';
+import { facts, forGrades, int, numeric, pick, type Entry, type Gen } from './helpers';
 
 const NOTE = 'かっ車とひもの重さ、まさつは考えないものとします。';
 
-// ---------- 3・4 年むけ ----------
+// ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
 const lowerFixed: Gen = {
   id: 'pulley-l-fixed',
@@ -298,8 +298,17 @@ const upperWork = facts('pulley-u-work', [
   },
 ]);
 
-export const PULLEY = {
-  lower: [lowerFixed, lowerMovable, lowerLength, lowerKinds, lowerCombo],
-  upper: [upperHeavy, upperCascade, upperTackle, upperCeiling, upperComboHeavy, upperWork],
-};
-
+/** ジェネレーターと、それを出す学年 */
+export const PULLEY: Entry[] = [
+  forGrades(lowerFixed, 3),
+  forGrades(lowerKinds, 3, 4),
+  forGrades(lowerMovable, 3, 4),
+  forGrades(lowerCombo, 4),
+  forGrades(lowerLength, 4, 5),
+  forGrades(upperHeavy, 5, 6),
+  forGrades(upperComboHeavy, 5),
+  forGrades(upperWork, 5, 6),
+  forGrades(upperCascade, 6),
+  forGrades(upperTackle, 6),
+  forGrades(upperCeiling, 6),
+];
