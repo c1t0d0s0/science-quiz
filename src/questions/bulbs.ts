@@ -1,0 +1,375 @@
+import { shuffle } from '../core/rng';
+import {
+  analyze,
+  circuitFig,
+  circuitGrid,
+  describe,
+  fracText,
+  fracValue,
+  mixedCircuitFig,
+  wiringGrid,
+  type Circuit,
+  type Frac,
+  type Wiring,
+} from '../diagrams/circuit';
+import { choice, facts, fixed, KANA, oneOf, pick, sample, type Gen } from './helpers';
+
+const one: Circuit = { cells: 1, cellMode: 's', bulbs: 1, bulbMode: 's' };
+const cells = (n: number, mode: 's' | 'p'): Circuit => ({ ...one, cells: n, cellMode: mode });
+const bulbs = (n: number, mode: 's' | 'p'): Circuit => ({ ...one, bulbs: n, bulbMode: mode });
+
+// ---------- 3・4 年むけ ----------
+
+const lowerWiring: Gen = {
+  id: 'bulbs-l-wiring',
+  make: (rng) => {
+    const kinds = shuffle<Wiring>(['ok', 'side', 'side2', 'open'], rng);
+    const list = kinds.map((kind) => ({ kind, flip: rng() < 0.5 }));
+    const correct = KANA[kinds.indexOf('ok')];
+    return fixed({
+      text: '乾電池と豆電球を、図のア〜エのように導線でつなぎました。豆電球に明かりがつくものはどれですか。',
+      svg: wiringGrid(list, KANA.slice(0, 4)),
+      choices: KANA.slice(0, 4),
+      correct,
+      explanation: `答えは ${correct} です。乾電池の＋極 → 豆電球 → －極と、1つの輪のように電気の通り道（回路）がつながると、明かりがつきます。導線が乾電池の横の面についていたり、とちゅうで切れていたりすると、明かりはつきません。`,
+    });
+  },
+};
+
+const CONDUCTS = ['鉄のくぎ', 'アルミニウムはく', '10円玉', '1円玉', 'はり金', '金属のスプーン', 'ゼムクリップ（鉄）'];
+const INSULATES = ['ガラスのコップ', '紙', '木のわりばし', 'プラスチックのじょうぎ', '消しゴム', 'ペットボトル', 'ぬの'];
+
+const lowerConduct: Gen = {
+  id: 'bulbs-l-conduct',
+  make: (rng) =>
+    pick(rng, [
+      () =>
+        oneOf(rng, {
+          text: '乾電池と豆電球をつないだ回路のとちゅうに、次のものをはさみました。豆電球に明かりがつくものはどれですか。',
+          yes: CONDUCTS,
+          no: INSULATES,
+          explanation: '鉄・銅・アルミニウムなどの金属は電気を通します。ガラス・紙・木・プラスチック・ゴムなどは電気を通しません。',
+        }),
+      () =>
+        oneOf(rng, {
+          text: '乾電池と豆電球をつないだ回路のとちゅうに、次のものをはさみました。豆電球に明かりがつかないものはどれですか。',
+          yes: INSULATES,
+          no: CONDUCTS,
+          explanation: 'ガラス・紙・木・プラスチック・ゴムなどは電気を通しません。鉄・銅・アルミニウムなどの金属は電気を通します。',
+        }),
+      () =>
+        choice(rng, {
+          text: '色がぬってあるスチールかん（鉄のかん）を回路のとちゅうにはさんでも、豆電球の明かりはつきませんでした。明かりをつけるには、どうすればよいですか。',
+          correct: '紙やすりで色のついた部分をけずり、そこに導線をつける',
+          wrong: ['かんを水でぬらす', 'かんをあたためる', 'かんを逆さまにする'],
+          explanation: 'かんの表面にぬってある色（とりょう）は電気を通しません。けずって金属の部分を出すと、電気が通るようになります。',
+        }),
+    ])(),
+};
+
+const lowerCompare: Gen = {
+  id: 'bulbs-l-compare',
+  make: (rng) => {
+    const v = pick(rng, [
+      { c: cells(2, 's'), a: '明るくなる', ex: '乾電池2個を直列つなぎにすると、回路に流れる電流が大きくなり、豆電球は明るくなります。' },
+      { c: cells(2, 'p'), a: '同じ明るさ', ex: '乾電池2個を並列つなぎにしても、流れる電流の大きさは乾電池1個のときと変わりません。明るさは同じですが、乾電池は長持ちします。' },
+      { c: bulbs(2, 's'), a: '暗くなる', ex: '豆電球2個を直列つなぎにすると、電流が流れにくくなり、1個のときより暗くなります。' },
+      { c: bulbs(2, 'p'), a: '同じ明るさ', ex: '豆電球2個を並列つなぎにすると、それぞれの豆電球に乾電池1個・豆電球1個のときと同じ大きさの電流が流れるので、明るさは同じです。' },
+    ]);
+    return fixed({
+      text: '図のように、乾電池と豆電球をつなぎました。豆電球1個の明るさは、乾電池1個に豆電球1個をつないだときとくらべてどうなりますか。',
+      svg: circuitFig(v.c),
+      choices: ['明るくなる', '同じ明るさ', '暗くなる', '明かりがつかない'],
+      correct: v.a,
+      explanation: `図は「${describe(v.c)}」の回路です。${v.ex}`,
+    });
+  },
+};
+
+const lowerName: Gen = {
+  id: 'bulbs-l-name',
+  make: (rng) => {
+    const n = pick(rng, [2, 3]);
+    const v = pick(rng, [
+      { c: cells(n, 's'), a: '乾電池の直列つなぎ' },
+      { c: cells(n, 'p'), a: '乾電池の並列つなぎ' },
+      { c: bulbs(n, 's'), a: '豆電球の直列つなぎ' },
+      { c: bulbs(n, 'p'), a: '豆電球の並列つなぎ' },
+    ]);
+    return fixed({
+      text: '図は、乾電池と豆電球をつないだ回路を、記号を使って表したものです。このつなぎ方を何といいますか。',
+      svg: circuitFig(v.c),
+      choices: ['乾電池の直列つなぎ', '乾電池の並列つなぎ', '豆電球の直列つなぎ', '豆電球の並列つなぎ'],
+      correct: v.a,
+      explanation: `答えは「${v.a}」です。長い線と短い線の記号が乾電池、丸に×の記号が豆電球です。1本の道すじにならべるつなぎ方が直列つなぎ、道すじを分けてならべるつなぎ方が並列つなぎです。`,
+    });
+  },
+};
+
+const lowerRemove: Gen = {
+  id: 'bulbs-l-remove',
+  make: (rng) => {
+    const v = pick(rng, [
+      { c: bulbs(2, 's'), what: '豆電球を1個ソケットからはずす', a: '消える', ex: '直列つなぎでは電気の通り道が1本しかないので、1個はずすと回路が切れて、のこりの豆電球も消えます。' },
+      { c: bulbs(2, 'p'), what: '豆電球を1個ソケットからはずす', a: 'ついたままで、明るさも変わらない', ex: '並列つなぎでは電気の通り道が分かれているので、1個はずしても、のこりの豆電球には同じように電流が流れます。' },
+      { c: cells(2, 's'), what: '乾電池を1個はずす（はずしたところはつながない）', a: '消える', ex: '乾電池の直列つなぎでは、1個はずすと回路が切れてしまうので、豆電球は消えます。' },
+      { c: cells(2, 'p'), what: '乾電池を1個はずす（はずしたところはつながない）', a: 'ついたままで、明るさも変わらない', ex: '乾電池の並列つなぎでは、1個はずしても、のこりの乾電池から電流が流れます。明るさは乾電池1個のときと同じです。' },
+    ]);
+    return fixed({
+      text: `図の回路で、${v.what}と、${v.c.bulbs === 2 ? 'のこりの豆電球' : '豆電球'}はどうなりますか。`,
+      svg: circuitFig(v.c),
+      choices: ['消える', 'ついたままで、明るさも変わらない', 'ついたままで、前より明るくなる', 'ついたままで、前より暗くなる'],
+      correct: v.a,
+      explanation: `図は「${describe(v.c)}」の回路です。${v.ex}`,
+    });
+  },
+};
+
+const lowerMotor = facts('bulbs-l-motor', [
+  {
+    q: '乾電池にモーターをつないで回しました。乾電池の向きを反対にすると、モーターはどうなりますか。',
+    a: '反対向きに回る',
+    wrong: ['同じ向きに、速く回る', '同じ向きに、おそく回る', '回らなくなる'],
+    ex: '乾電池の向きを反対にすると、電流の向きが反対になり、モーターの回る向きも反対になります。',
+  },
+  {
+    q: '回路を流れる電流の向きとして正しいものはどれですか。',
+    a: '乾電池の＋極から出て、－極へ流れる',
+    wrong: ['乾電池の－極から出て、＋極へ流れる', '＋極と－極の両方から出て、豆電球でぶつかる', '流れる向きは決まっていない'],
+    ex: '電流は、乾電池の＋極から出て、豆電球やモーターを通り、－極へ流れます。',
+  },
+  {
+    q: '乾電池2個とモーターでプロペラカーをつくります。いちばん速く走るつなぎ方はどれですか。',
+    a: '乾電池2個を直列つなぎにする',
+    wrong: ['乾電池2個を並列つなぎにする', '乾電池を1個だけ使う', 'どのつなぎ方でも同じ'],
+    ex: '乾電池2個を直列つなぎにすると、電流が大きくなり、モーターは速く回ります。並列つなぎでは、速さは乾電池1個のときと同じです。',
+  },
+  {
+    q: '乾電池2個を並列つなぎにしたとき、乾電池1個のときとくらべたちがいとして正しいものはどれですか。',
+    a: '明るさは同じだが、長い時間つけていられる',
+    wrong: ['明るくなり、長い時間つけていられる', '明るくなるが、つけていられる時間は短くなる', '暗くなり、つけていられる時間も短くなる'],
+    ex: '乾電池の並列つなぎでは、豆電球に流れる電流は乾電池1個のときと同じなので明るさは変わりませんが、乾電池は長持ちします。',
+  },
+  {
+    q: '電流の向きと大きさを調べるときに使う道具はどれですか。',
+    a: '検流計',
+    wrong: ['温度計', '方位じしん', '上皿てんびん', 'ばねばかり'],
+    ex: '検流計は、はりのふれる向きで電流の向きを、ふれる大きさで電流の大きさを調べることができます。',
+  },
+  {
+    q: '光電池にモーターをつなぎました。モーターを速く回すには、どうすればよいですか。',
+    a: '光電池に当たる光を強くする',
+    wrong: ['光電池に当たる光を弱くする', '光電池を紙でおおう', '光電池を日かげに置く'],
+    ex: '光電池は、光が当たると電気をつくります。当たる光が強いほど、大きな電流が流れます。',
+  },
+]);
+
+// ---------- 5・6 年むけ ----------
+
+const ALL: Circuit[] = [];
+for (const c of [1, 2, 3]) {
+  for (const cm of ['s', 'p'] as const) {
+    if (c === 1 && cm === 'p') continue;
+    for (const b of [1, 2, 3]) {
+      for (const bm of ['s', 'p'] as const) {
+        if (b === 1 && bm === 'p') continue;
+        ALL.push({ cells: c, cellMode: cm, bulbs: b, bulbMode: bm });
+      }
+    }
+  }
+}
+
+const FRACS: Frac[] = [
+  { n: 1, d: 3 },
+  { n: 1, d: 2 },
+  { n: 2, d: 3 },
+  { n: 1, d: 1 },
+  { n: 3, d: 2 },
+  { n: 2, d: 1 },
+  { n: 3, d: 1 },
+  { n: 4, d: 1 },
+  { n: 6, d: 1 },
+  { n: 9, d: 1 },
+];
+
+/** 分数で答える問題。選択肢は小さい順にならべる */
+function fracQuestion(rng: () => number, text: string, svg: string, answer: Frac, explanation: string) {
+  const others = sample(rng, FRACS.filter((f) => fracValue(f) !== fracValue(answer)), 3);
+  const choices = [answer, ...others].sort((a, b) => fracValue(a) - fracValue(b)).map(fracText);
+  return fixed({ text, svg, choices, correct: fracText(answer), explanation });
+}
+
+const why = (c: Circuit) => {
+  const volt = c.cellMode === 's' ? `乾電池${c.cells}個の直列つなぎなので、電流を流そうとするはたらきは${c.cells}倍` : `乾電池が${c.cells}個でも並列つなぎなので、電流を流そうとするはたらきは1個のときと同じ`;
+  const load =
+    c.bulbs === 1
+      ? ''
+      : c.bulbMode === 's'
+        ? `豆電球${c.bulbs}個の直列つなぎなので、電流の流れにくさは${c.bulbs}倍になります。`
+        : `豆電球${c.bulbs}個の並列つなぎなので、どの豆電球にも、豆電球1個だけをつないだときと同じ大きさの電流が流れます。`;
+  return `${c.cells === 1 ? '乾電池は1個です。' : `${volt}です。`}${load}`;
+};
+
+const upperCurrent: Gen = {
+  id: 'bulbs-u-current',
+  make: (rng) => {
+    const c = pick(rng, ALL.filter((x) => x.cells + x.bulbs > 2));
+    const a = analyze(c);
+    return fracQuestion(
+      rng,
+      '図の回路で、豆電球1個に流れる電流の大きさは、乾電池1個に豆電球1個をつないだときを1とすると、いくつになりますか。乾電池と豆電球はすべて同じものとします。',
+      circuitFig(c),
+      a.perBulb,
+      `図は「${describe(c)}」の回路です。${why(c)}豆電球1個に流れる電流は ${fracText(a.perBulb)} です。`,
+    );
+  },
+};
+
+const upperCell: Gen = {
+  id: 'bulbs-u-cell',
+  make: (rng) => {
+    const c = pick(rng, ALL.filter((x) => (x.bulbs > 1 && x.bulbMode === 'p') || (x.cells > 1 && x.cellMode === 'p')));
+    const a = analyze(c);
+    return fracQuestion(
+      rng,
+      '図の回路で、乾電池1個に流れる電流の大きさは、乾電池1個に豆電球1個をつないだときを1とすると、いくつになりますか。乾電池と豆電球はすべて同じものとします。',
+      circuitFig(c),
+      a.perCell,
+      `図は「${describe(c)}」の回路です。豆電球1個に流れる電流は ${fracText(a.perBulb)} で、回路全体に流れる電流は ${fracText(a.total)} です。${
+        c.cells > 1 && c.cellMode === 'p' ? `乾電池${c.cells}個の並列つなぎでは、全体の電流を${c.cells}個で分け合うので、` : ''
+      }乾電池1個に流れる電流は ${fracText(a.perCell)} です。`,
+    );
+  },
+};
+
+/** 4 つの回路をえらび、value がいちばん大きい (または小さい) ものが 1 つだけになるようにする */
+function fourCircuits(rng: () => number, value: (c: Circuit) => number, largest: boolean): { list: Circuit[]; best: number } {
+  for (;;) {
+    const list = sample(rng, ALL, 4);
+    const values = list.map(value);
+    const target = largest ? Math.max(...values) : Math.min(...values);
+    if (values.filter((v) => v === target).length === 1) return { list, best: values.indexOf(target) };
+  }
+}
+
+const upperBrightest: Gen = {
+  id: 'bulbs-u-brightest',
+  make: (rng) => {
+    const largest = rng() < 0.6;
+    const { list, best } = fourCircuits(rng, (c) => fracValue(analyze(c).perBulb), largest);
+    return fixed({
+      text: `図のア〜エの回路のうち、豆電球1個の明るさがいちばん${largest ? '明るい' : '暗い'}ものはどれですか。乾電池と豆電球はすべて同じものとします。`,
+      svg: circuitGrid(list, KANA.slice(0, 4)),
+      choices: KANA.slice(0, 4),
+      correct: KANA[best],
+      explanation: `乾電池1個・豆電球1個のときを1とすると、豆電球1個に流れる電流は、${list.map((c, i) => `${KANA[i]} が ${fracText(analyze(c).perBulb)}`).join('、')} です。流れる電流が大きいほど明るいので、答えは ${KANA[best]} です。`,
+    });
+  },
+};
+
+const upperLife: Gen = {
+  id: 'bulbs-u-life',
+  make: (rng) => {
+    const longest = rng() < 0.6;
+    const { list, best } = fourCircuits(rng, (c) => fracValue(analyze(c).perCell), !longest);
+    return fixed({
+      text: `図のア〜エの回路のうち、乾電池がいちばん${longest ? '長持ちする' : '早く使えなくなる'}ものはどれですか。乾電池と豆電球はすべて同じものとします。`,
+      svg: circuitGrid(list, KANA.slice(0, 4)),
+      choices: KANA.slice(0, 4),
+      correct: KANA[best],
+      explanation: `乾電池1個に流れる電流が小さいほど、乾電池は長持ちします。乾電池1個・豆電球1個のときを1とすると、乾電池1個に流れる電流は、${list.map((c, i) => `${KANA[i]} が ${fracText(analyze(c).perCell)}`).join('、')} です。だから答えは ${KANA[best]} です。`,
+    });
+  },
+};
+
+const upperMixed: Gen = {
+  id: 'bulbs-u-mixed',
+  make: (rng) => {
+    const svg = mixedCircuitFig();
+    const intro = '図のように、同じ豆電球A・B・Cと乾電池をつなぎました。';
+    return pick(rng, [
+      () =>
+        choice(rng, {
+          text: `${intro}3つの豆電球の明るさについて、正しいものはどれですか。`,
+          svg,
+          correct: 'Aがいちばん明るく、BとCは同じ明るさ',
+          wrong: ['3つとも同じ明るさ', 'BとCが同じ明るさで、Aがいちばん暗い', 'Aがいちばん明るく、次にB、Cがいちばん暗い'],
+          explanation: 'Aを流れた電流が、BとCに半分ずつ分かれて流れます。だから、Aがいちばん明るく、BとCはAより暗い同じ明るさになります。',
+        }),
+      () =>
+        choice(rng, {
+          text: `${intro}豆電球Bをソケットからはずすと、豆電球Cの明るさは、はずす前とくらべてどうなりますか。`,
+          svg,
+          correct: '明るくなる',
+          wrong: ['暗くなる', '変わらない', '消える'],
+          explanation: 'はずす前、Cに流れる電流は（乾電池1個・豆電球1個のときを1として）3分の1です。Bをはずすと、AとCの直列つなぎになり、Cに流れる電流は2分の1にふえます。だからCは明るくなります。',
+        }),
+      () =>
+        choice(rng, {
+          text: `${intro}豆電球Bをソケットからはずすと、豆電球Aの明るさは、はずす前とくらべてどうなりますか。`,
+          svg,
+          correct: '暗くなる',
+          wrong: ['明るくなる', '変わらない', '消える'],
+          explanation: 'はずす前、Aに流れる電流は（乾電池1個・豆電球1個のときを1として）3分の2です。Bをはずすと、AとCの直列つなぎになり、Aに流れる電流は2分の1にへります。だからAは暗くなります。',
+        }),
+      () =>
+        choice(rng, {
+          text: `${intro}豆電球Aをソケットからはずすと、豆電球BとCはどうなりますか。`,
+          svg,
+          correct: 'BもCも消える',
+          wrong: ['BもCも明るくなる', 'BもCも明るさは変わらない', 'Bだけが消える'],
+          explanation: 'Aは、乾電池とB・Cをつなぐ1本道のとちゅうにあります。Aをはずすと回路が切れてしまうので、BもCも消えます。',
+        }),
+    ])();
+  },
+};
+
+const upperDevices = facts('bulbs-u-devices', [
+  {
+    q: '乾電池の＋極と－極を、豆電球などを通さずに導線だけでつないだ回路を何といいますか。',
+    a: 'ショート回路',
+    wrong: ['直列回路', '並列回路', '中和回路'],
+    ex: '導線だけで＋極と－極をつなぐと、とても大きな電流が流れて、導線や乾電池が熱くなります。きけんなので、してはいけません。',
+  },
+  {
+    q: '豆電球と発光ダイオード（LED）を、同じ明るさで光らせたときのちがいとして正しいものはどれですか。',
+    a: '発光ダイオードの方が、少ない電気で長く光る',
+    wrong: ['豆電球の方が、少ない電気で長く光る', '使う電気の量は同じである', '発光ダイオードの方が、熱くなりやすい'],
+    ex: '発光ダイオードは、電気を光に変える効率がよく、豆電球より少ない電気で光ります。豆電球は、電気の多くが熱に変わってしまいます。',
+  },
+  {
+    q: '発光ダイオード（LED）を乾電池につなぐときに、注意しなければならないことはどれですか。',
+    a: '＋極と－極を決まった向きにつながないと光らない',
+    wrong: ['どちらの向きにつないでも同じように光る', '必ず水の中で使う', '乾電池を3個以上並列つなぎにしないと光らない'],
+    ex: '発光ダイオードは、決まった向きに電流が流れたときだけ光ります。長いあしを＋極がわにつなぎます。',
+  },
+  {
+    q: '手回し発電機に豆電球をつないでハンドルを回しました。ハンドルを速く回すと、豆電球はどうなりますか。',
+    a: '明るくなる',
+    wrong: ['暗くなる', '変わらない', '消える'],
+    ex: '手回し発電機は、ハンドルを速く回すほど大きな電流が流れるので、豆電球は明るくなります。',
+  },
+  {
+    q: '手回し発電機にモーターをつないで回しました。ハンドルを逆向きに回すと、どうなりますか。',
+    a: '電流の向きが逆になり、モーターが逆向きに回る',
+    wrong: ['電流の向きは変わらず、モーターは同じ向きに回る', '電流が流れなくなる', '電流が2倍になる'],
+    ex: '手回し発電機のハンドルを逆向きに回すと、電流の向きも逆になります。',
+  },
+  {
+    q: '電気をたくわえることができる器具はどれですか。',
+    a: 'コンデンサー',
+    wrong: ['発光ダイオード', '豆電球', '電熱線', '検流計'],
+    ex: 'コンデンサーは電気をたくわえることができます。手回し発電機でつくった電気をためて、あとで使うことができます。',
+  },
+  {
+    q: '同じ長さで太さのちがう2本の電熱線に、同じ乾電池をそれぞれつなぎました。発熱について正しいものはどれですか。',
+    a: '太い電熱線の方が、大きな電流が流れてよく発熱する',
+    wrong: ['細い電熱線の方が、大きな電流が流れてよく発熱する', '太さがちがっても、発熱は同じである', '太い電熱線には電流が流れない'],
+    ex: '電熱線は太いほど電流が流れやすくなります。同じ乾電池につなぐと、太い電熱線の方が大きな電流が流れて、よく発熱します。',
+  },
+]);
+
+export const BULBS = {
+  lower: [lowerWiring, lowerConduct, lowerCompare, lowerName, lowerRemove, lowerMotor],
+  upper: [upperCurrent, upperCell, upperBrightest, upperLife, upperMixed, upperDevices],
+};
