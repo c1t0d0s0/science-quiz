@@ -2,6 +2,7 @@ import { dailyQuestions } from '../core/daily';
 import { jstDate } from '../core/date';
 import { CATEGORIES, CATEGORY_LABEL, LEVELS, type Level } from '../core/quiz';
 import { currentStreak, isDone, loadAnswers, pruneOld, score } from '../core/storage';
+import { accountBox } from './account';
 import { h, hanamaru } from './dom';
 import { dateLabel, HOWTO, LEVEL_LABEL, LEVEL_NOTE } from './text';
 
@@ -79,6 +80,7 @@ export function renderHome(root: HTMLElement): void {
       h(
         'aside',
         { class: 'home-side' },
+        accountBox(),
         h(
           'section',
           { class: 'fields', 'aria-labelledby': 'fields-title' },

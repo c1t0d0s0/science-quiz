@@ -214,6 +214,7 @@ rt {
     padding: 1px;
   }
 
+  .home-side .account,
   .home-side .fields,
   .home-side .howto {
     padding: 1rem 1.1rem 1.1rem;
@@ -364,6 +365,48 @@ rt {
   flex-wrap: wrap;
   gap: 0.4rem;
   margin-top: 0.6rem;
+}
+
+.home-side .account-note {
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+/* ログインと記録の保存 */
+.account {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.account-note {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  max-width: 38rem;
+}
+
+.account-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+}
+
+.account-status {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.account-status.is-offline,
+.account-error {
+  color: var(--red);
+  font-size: 0.875rem;
+}
+
+.account-error:empty {
+  display: none;
 }
 
 .howto {

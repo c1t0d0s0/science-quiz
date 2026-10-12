@@ -7,7 +7,7 @@
 - **同じ日は同じ問題**: 日本時間の日付とレベルから乱数の種を作るので、いつ・どの端末で開いても同じ 10 問になります。日付が変わると新しい問題になります
 - **図つき**: 回路図、てこ、かっ車、月の形などの図は、問題の数値に合わせてその場で SVG としてかきます (画像ファイルは使いません)
 - スマートフォン・タブレット・PC のどれでも使えます。暗い画面の設定では、黒板のような色になります
-- とちゅうの答えと結果は、ブラウザの `localStorage` に保存します (サーバーには送りません)
+- とちゅうの答えと結果は、ブラウザの `localStorage` に保存します。Google でログインすると Firestore にも保存され、ほかのブラウザや端末でも同じ記録でつづけられます (ログインは任意)
 
 ## 動かし方
 
@@ -29,6 +29,66 @@ npm run preview  # dist/ の中身を手元で見る
 
 GitHub Pages に公開するときは、リポジトリの変数 `GTM_ID` に ID を入れてください (`.github/workflows/deploy.yml`)。
 
+## ログインと記録の保存 (Firebase)
+
+[Wordlynx](../wordlynx/) と同じ仕組み・同じ Firebase プロジェクトを使います。
+Google でログインした人の記録は Firestore に保存し、ログインしない人は今までどおりそのブラウザの localStorage だけに保存します。
+**Firebase の設定を入れていないビルドでは、ログインの入り口は出ず、Firebase のコードも読みこまれません。**
+
+- 画面はいつも手元 (localStorage) の記録を読み書きする (`src/core/storage.ts`)
+- ログイン中は、手元の記録を「Firestore の写し」としてあつかい、書きかわった分を少しまとめてから Firestore に送る (`src/cloud/sync.ts`)
+- ログインしたとき・ページを開いたときは、Firestore の記録と手元の写しを合わせて、両方に書く。
+  合わせ方は `src/core/merge.ts` にあり、何回合わせても同じ結果になる
+
+  | 記録 | 合わせ方 |
+  |---|---|
+  | とき終えた日と正解数 | 両方を合わせる。同じ日・同じ学年が両方にあれば、正解数の多いほう |
+  | その日の途中経過 | 先まで答えているほう。同じところまでなら、あとから保存したほう |
+
+- 手元の記録は人ごとに分ける。ログインなしの記録は `science-quiz:v1:…`、ログイン中の人の写しは `science-quiz:u:<uid>:…`。
+  ログアウトすると、その人の写しは端末から消す (きょうだいで 1 台を使っても、記録がまざらない)
+- ログインしたとき、その端末にログインなしの記録があれば、アカウントにうつすかどうかを聞く
+- 通信できないときも手元の写しで使え、つながったときに送る
+
+### Firestore の形
+
+Wordlynx と同じ形 (小学生向けの学習アプリで共通) で、`appId` だけがちがいます。Wordlynx の記録とはまざりません。
+ルールも Wordlynx と同じ (`firestore.rules`。読み書きできるのはログインしている本人だけ) なので、**ルールを入れ直す必要はありません。**
+
+```
+users/{uid}                                        その人の情報 (全アプリ共通)。名前・メールアドレスは保存しない
+users/{uid}/apps/science-quiz                      記録のまとめ
+  activeDays: string[]                             どれかの学年の 10 問をとき終えた日
+  completed:  string[]                             とき終えた「レベル:日付」(g3:2026-10-12 など)
+  settings:   { scores: { "g3:2026-10-12": 8 } }   正解数
+  inventory: {}, spent: {}                         (このアプリでは使わない)
+users/{uid}/apps/science-quiz/progress/{日付:レベル}  その日の途中経過 (前の日までのものは消す)
+  status: "playing" | "done"
+  data: { sig, answers }                           問題の印と、えらんだ答え
+```
+
+### 設定
+
+Wordlynx と同じ 4 つの値を入れます。4 つのうち一部だけを入れると、ビルドがエラーになります。
+
+- 手元: `config.js` に `FIREBASE_API_KEY` `FIREBASE_AUTH_DOMAIN` `FIREBASE_PROJECT_ID` `FIREBASE_APP_ID` を書く (書き方は `GTM_ID` と同じ)
+- GitHub Pages: リポジトリの Settings → Secrets and variables → Actions → Variables に、同じ 4 つの名前で登録する
+- 公開先のドメインが Wordlynx とちがうときは、Firebase コンソールの Authentication → 設定 → 承認済みドメイン に足す
+
+ログインに失敗すると、ボタンの下に Firebase のエラーの名前 (`auth/unauthorized-domain` など) が出ます。
+原因と直し方は Wordlynx の README の「ログインできないとき」と同じです。
+
+### エミュレーターで動かす (開発用)
+
+本物の Firebase を使わずに、手元でログインと保存をためせます (Java が必要)。
+
+```sh
+npx firebase-tools emulators:start --only auth,firestore --project demo-science-quiz
+FIREBASE_API_KEY=x FIREBASE_AUTH_DOMAIN=localhost FIREBASE_PROJECT_ID=demo-science-quiz FIREBASE_APP_ID=x FIREBASE_EMULATOR=1 npm run dev
+```
+
+エミュレーターには Google のログイン画面がないので、ブラウザのコンソールで `window.__testUser = 'kid1'` としてからログインのボタンをおします。
+
 ## しくみ
 
 | 場所 | 中身 |
@@ -38,7 +98,8 @@ GitHub Pages に公開するときは、リポジトリの変数 `GTM_ID` に ID
 | `src/questions/ruby.ts` | 3・4 年生むけの問題につける、ふりがなの一覧 |
 | `src/diagrams/*.ts` | 図 (SVG) をかく関数 |
 | `src/ui/*.ts` | ホーム・問題・結果の画面 |
-| `tests/` | 400 日分の出題の確認と、計算問題の検算 |
+| `src/cloud/` | ログインと Firestore との同期 (Firebase に依存するのは `firebase.ts` だけ) |
+| `tests/` | 400 日分の出題の確認、計算問題の検算、記録の合わせ方と同期 |
 
 ### 問題を足すには
 
