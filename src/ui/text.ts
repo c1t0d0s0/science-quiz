@@ -1,4 +1,5 @@
 import type { Level } from '../core/quiz';
+import { MONTH_POINTS, PERFECT_BONUS, QUIZ_POINTS, WEEK_LENGTH, WEEK_POINTS } from '../core/rewards';
 
 export const LEVEL_LABEL: Record<Level, string> = {
   g3: '3年生むけ',
@@ -42,8 +43,37 @@ export const HOWTO = [
   '同じ日のうちは、いつ開いても同じ問題です。日付が変わると、新しい10問になります。',
   '生物・地学・化学・物理の16の分野から、毎日ちがう10分野が1問ずつ出ます。8日間で、どの分野も同じ回数だけ出ます。',
   '答えるとすぐに、正解と解説が出ます。まちがえた問題こそ、解説をよく読もう。',
+  '10問をとき終えると、スタンプとポイントがもらえます。ポイントをためて、柴犬（しばいぬ）のカードを集めよう。',
   '記録は、この端末（たんまつ）のブラウザにほぞんされます。Googleでログインすると、ほかの端末でも同じ記録でつづけられます。',
 ];
+
+const num = (n: number) => n.toLocaleString('ja-JP');
+
+/** スタンプカード・ポイント・柴犬カードの文言 */
+export const REWARD = {
+  goHome: 'ホームへ',
+  stampTitle: 'スタンプカード',
+  stampMonth: (month: number) => `${month}月`,
+  stampDayLabel: (day: number, stamped: boolean) => `${day}日${stamped ? ' スタンプあり' : ''}`,
+  stampRun: (run: number, left: number) =>
+    run === 0 ? `今日の10問をとき終えると、スタンプがもらえます。${WEEK_LENGTH}日つづけると${num(WEEK_POINTS)}pt！` : `${run}日つづいています。あと${left}日で${num(WEEK_POINTS)}pt！`,
+  stampRule: `10問をとき終えると${QUIZ_POINTS}pt（全問正解なら、さらに${PERFECT_BONUS}pt）。学年ごとにもらえます。スタンプは1日1個で、${WEEK_LENGTH}日つづけるたびに${num(WEEK_POINTS)}pt、1日から月のさいごの日まで全部そろうと、さらに${num(MONTH_POINTS)}pt。`,
+  stampDone: 'スタンプをおしたよ',
+  rewardQuiz: (points: number, perfect: boolean) => (perfect ? `全問正解！ +${points}pt` : `とき終えた！ +${points}pt`),
+  rewardWeek: (run: number) => `${run}日つづいた！ +${num(WEEK_POINTS)}pt`,
+  rewardMonth: (month: number) => `${month}月のスタンプが全部そろった！ +${num(MONTH_POINTS)}pt`,
+  points: (n: number) => `${num(n)}pt`,
+  pointsLabel: '持っているポイント',
+  rewardLinks: 'スタンプカードと柴犬カード',
+  seeStamps: 'スタンプカードを見る',
+  cardsTitle: '柴犬カード',
+  cardsLead: 'ポイントをためて、柴犬（しばいぬ）のカードを集めよう。',
+  cardsOwned: (n: number, total: number) => `${n} / ${total}まい`,
+  cardGet: 'ゲットする',
+  cardShort: (n: number) => `あと${num(n)}pt`,
+  cardConfirm: (price: number) => `${num(price)}ptを使って、このカードをゲットしますか？`,
+  cardBackLabel: (price: number) => `まだ持っていないカード。${num(price)}ptでゲットできる`,
+};
 
 /** アカウント欄の文言 */
 export const ACCOUNT = {

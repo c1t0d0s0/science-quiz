@@ -4,10 +4,15 @@ import { dailyQuestions } from '../src/core/daily';
 import { addDays, jstDate } from '../src/core/date';
 import { mergeProgress, mergeSnapshots } from '../src/core/merge';
 import { emptySnapshot, fromAppDoc, fromProgressDoc, toAppDoc, toProgressDoc, type Progress, type Snapshot } from '../src/core/snapshot';
+import { CARDS } from '../src/data/cards';
 import {
+  balance,
+  buyCard,
   currentStreak,
   currentUid,
   exportSnapshot,
+  getCards,
+  getStamps,
   importSnapshot,
   isDone,
   loadAnswers,
@@ -145,8 +150,8 @@ beforeEach(() => {
 });
 
 describe('記録を合わせる', () => {
-  const a: Snapshot = { done: { 'g3:2026-10-10': 7, 'g4:2026-10-11': 9 }, progress: { x: { sig: 's', answers: [0, 1], at: 5 } } };
-  const b: Snapshot = { done: { 'g3:2026-10-10': 8, 'g5:2026-10-12': 10 }, progress: { x: { sig: 's', answers: [0, 1, 2], at: 3 }, y: { sig: 't', answers: [], at: 1 } } };
+  const a: Snapshot = { done: { 'g3:2026-10-10': 7, 'g4:2026-10-11': 9 }, cards: [{ id: 's01', paid: 40 }, { id: 's03', paid: 300 }], progress: { x: { sig: 's', answers: [0, 1], at: 5 } } };
+  const b: Snapshot = { done: { 'g3:2026-10-10': 8, 'g5:2026-10-12': 10 }, cards: [{ id: 's02', paid: 80 }, { id: 's03', paid: 250 }], progress: { x: { sig: 's', answers: [0, 1, 2], at: 3 }, y: { sig: 't', answers: [], at: 1 } } };
 
   it('入れかえても、くり返しても、同じ結果になる', () => {
     const ab = mergeSnapshots(a, b);
@@ -160,6 +165,8 @@ describe('記録を合わせる', () => {
     expect(ab.done).toEqual({ 'g3:2026-10-10': 8, 'g4:2026-10-11': 9, 'g5:2026-10-12': 10 });
     expect(ab.progress.x.answers).toEqual([0, 1, 2]);
     expect(ab.progress.x.at).toBe(5);
+    // カードは両方を合わせ、同じカードは払った額の小さいほう
+    expect(ab.cards).toEqual([{ id: 's01', paid: 40 }, { id: 's02', paid: 80 }, { id: 's03', paid: 250 }]);
   });
 
   it('問題が作り直されていたら、あとから保存した途中経過を使う', () => {
@@ -174,6 +181,8 @@ describe('記録を合わせる', () => {
     expect(doc.activeDays).toEqual(['2026-10-10', '2026-10-11']);
     expect(doc.completed).toEqual(['g3:2026-10-10', 'g4:2026-10-11']);
     expect(fromAppDoc(doc).done).toEqual(a.done);
+    expect(doc.inventory).toEqual({ s01: { paid: 40 }, s03: { paid: 300 } });
+    expect(fromAppDoc(doc).cards).toEqual(a.cards);
     expect(fromProgressDoc(toProgressDoc(a.progress.x, 0))).toEqual(a.progress.x);
     // 形のくずれたものは受けつけない
     expect(fromAppDoc({ settings: { scores: { bad: 3, 'g3:2026-10-10': 'x', 'g4:2026-10-11': 5 } } }).done).toEqual({ 'g4:2026-10-11': 5 });
@@ -264,7 +273,7 @@ describe('ログインと同期', () => {
 
   it('2 台で別々にといた記録は、どちらも残る', async () => {
     const cloud = new FakeCloud();
-    cloud.data.set('alice', { done: { [`g4:${addDays(today, -1)}`]: 6 }, progress: {} });
+    cloud.data.set('alice', { done: { [`g4:${addDays(today, -1)}`]: 6 }, cards: [], progress: {} });
     const a = makeDevice(cloud);
     await signIn(a);
     saveAnswers(today, 'g3', questions, allCorrect);
@@ -304,10 +313,27 @@ describe('ログインと同期', () => {
     expect(cloud.data.get('alice')?.done).toEqual({ [`g3:${today}`]: 10 });
   });
 
+  it('交換したカードも、別の端末に引きつがれる', async () => {
+    const cloud = new FakeCloud();
+    const a = makeDevice(cloud);
+    await signIn(a);
+    saveAnswers(today, 'g3', questions, allCorrect);
+    saveAnswers(today, 'g4', dailyQuestions(today, 'g4'), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(balance()).toBeGreaterThanOrEqual(50);
+    expect(buyCard(CARDS[0])).toBe(true);
+    await a.sync.flush();
+    expect(cloud.data.get('alice')?.cards).toEqual([{ id: CARDS[0].id, paid: CARDS[0].price }]);
+
+    const b = makeDevice(cloud);
+    await signIn(b);
+    expect(getCards()).toEqual([{ id: CARDS[0].id, paid: CARDS[0].price }]);
+    expect(getStamps()).toEqual([today]);
+  });
+
   it('前の日までの途中経過は、Firestore からも消す', async () => {
     const cloud = new FakeCloud();
     const old = progressId(addDays(today, -1), 'g3');
-    cloud.data.set('alice', { done: {}, progress: { [old]: { sig: 's', answers: [0], at: 1 } } });
+    cloud.data.set('alice', { done: {}, cards: [], progress: { [old]: { sig: 's', answers: [0], at: 1 } } });
     const d = makeDevice(cloud);
     await signIn(d);
     expect(cloud.data.get('alice')?.progress[old]).toBeUndefined();

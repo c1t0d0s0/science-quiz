@@ -13,10 +13,10 @@ export function assertWellFormed(svg: string): void {
   if (/NaN|undefined|Infinity/.test(svg)) fail('数になっていない値');
   const stack: string[] = [];
   for (const tag of svg.match(/<[^>]+>/g) ?? []) {
-    const name = tag.match(/^<\/?([a-z]+)/)?.[1];
+    const name = tag.match(/^<\/?([a-zA-Z]+)/)?.[1];
     if (!name) fail(tag);
     // 属性は 名前="値" の形だけ
-    if (!/^<\/?[a-z]+( [a-zA-Z0-9:-]+="")*\s*\/?>$/.test(tag.replace(/"[^"]*"/g, '""'))) fail(tag);
+    if (!/^<\/?[a-zA-Z]+( [a-zA-Z0-9:-]+="")*\s*\/?>$/.test(tag.replace(/"[^"]*"/g, '""'))) fail(tag);
     if (tag.startsWith('</')) {
       if (stack.pop() !== name) fail(tag);
     } else if (!tag.endsWith('/>')) stack.push(name!);

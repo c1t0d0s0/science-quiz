@@ -1,4 +1,4 @@
-import type { Progress, Snapshot } from './snapshot';
+import type { OwnedCard, Progress, Snapshot } from './snapshot';
 
 // 2 か所にある記録 (たとえば、この端末と Firestore) を 1 つに合わせる。
 // どの関数も、同じものを 2 回合わせても変わらず、a と b を入れかえても同じ結果になる。
@@ -30,6 +30,13 @@ export function mergeDone(a: Record<string, number>, b: Record<string, number>):
   return out;
 }
 
+/** カード: 両方を合わせる。同じカードは、払った額の小さいほう */
+export function mergeCards(a: readonly OwnedCard[], b: readonly OwnedCard[]): OwnedCard[] {
+  const paid = new Map<string, number>();
+  for (const c of [...a, ...b]) paid.set(c.id, Math.min(c.paid, paid.get(c.id) ?? Infinity));
+  return [...paid].map(([id, p]) => ({ id, paid: p })).sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+}
+
 export function mergeSnapshots(a: Snapshot, b: Snapshot): Snapshot {
   const progress: Record<string, Progress> = {};
   for (const id of [...new Set([...Object.keys(a.progress), ...Object.keys(b.progress)])].sort()) {
@@ -37,7 +44,7 @@ export function mergeSnapshots(a: Snapshot, b: Snapshot): Snapshot {
     const pb = b.progress[id];
     progress[id] = pa && pb ? mergeProgress(pa, pb) : (pa ?? pb);
   }
-  return { done: mergeDone(a.done, b.done), progress };
+  return { done: mergeDone(a.done, b.done), cards: mergeCards(a.cards, b.cards), progress };
 }
 
 /** 記録の中身が同じか (ならび順のちがいは気にしない) */

@@ -9,27 +9,36 @@ export interface Progress {
   at?: number;
 }
 
+/** 持っている柴犬カード */
+export interface OwnedCard {
+  id: string;
+  /** 交換したときに使ったポイント。あとで値段を変えても残高がずれないように残す */
+  paid: number;
+}
+
 /** 1 人分の記録の全部。ログインなしの記録も、ログイン中の人の記録も、この形であつかう */
 export interface Snapshot {
   /** とき終えた 10 問の正解数。キーは「レベル:日付」(g3:2026-10-12 など) */
   done: Record<string, number>;
+  /** ポイントと交換した柴犬カード */
+  cards: OwnedCard[];
   /** 途中経過。キーは「日付:レベル」(2026-10-12:g3 など) */
   progress: Record<string, Progress>;
 }
 
 export function emptySnapshot(): Snapshot {
-  return { done: {}, progress: {} };
+  return { done: {}, cards: [], progress: {} };
 }
 
 /** 記録が 1 つでもあるか */
 export function hasRecords(s: Snapshot): boolean {
-  return Object.keys(s.done).length > 0 || Object.values(s.progress).some((p) => p.answers.length > 0);
+  return Object.keys(s.done).length > 0 || s.cards.length > 0 || Object.values(s.progress).some((p) => p.answers.length > 0);
 }
 
 // ---- Firestore に保存する形 (小学生向けの学習アプリで共通。Wordlynx と同じ) ----
 //
 //   users/{uid}                                その人の情報 (全アプリ共通)。名前やメールアドレスは入れない
-//   users/{uid}/apps/{appId}                   アプリごとの記録のまとめ (AppDoc)
+//   users/{uid}/apps/{appId}                   アプリごとの記録のまとめ (AppDoc)。スタンプは activeDays、柴犬カードは inventory
 //   users/{uid}/apps/{appId}/progress/{itemId} 教材 1 つごとの途中経過 (ProgressDoc)
 //
 // このアプリの appId は "science-quiz"。Wordlynx ("wordlynx") とは別の場所に入るので、記録はまざらない。
@@ -44,7 +53,7 @@ export interface AppDoc {
   activeDays: string[];
   /** やりとげた教材の id。このアプリでは「レベル:日付」 */
   completed: string[];
-  /** 手に入れたごほうび (このアプリでは使わない) */
+  /** 手に入れたごほうび。このアプリでは柴犬カード */
   inventory: Record<string, { paid: number }>;
   /** 使ったポイント (このアプリでは使わない) */
   spent: Record<string, number>;
@@ -70,7 +79,7 @@ export function toAppDoc(s: Snapshot, now: number): AppDoc {
     updatedAt: now,
     activeDays: [...new Set(keys.map(dateOf))].sort(),
     completed: keys,
-    inventory: {},
+    inventory: Object.fromEntries(s.cards.map((c) => [c.id, { paid: c.paid }])),
     spent: {},
     settings: { scores: Object.fromEntries(keys.map((k) => [k, s.done[k]])) },
   };
@@ -86,6 +95,9 @@ export function fromAppDoc(doc: Partial<AppDoc> | null | undefined): Snapshot {
   const scores = doc.settings?.scores;
   if (typeof scores === 'object' && scores !== null) {
     for (const [key, value] of Object.entries(scores)) if (validKey(key) && validScore(value)) s.done[key] = value;
+  }
+  for (const [id, item] of Object.entries(doc.inventory ?? {})) {
+    if (typeof item?.paid === 'number' && item.paid >= 0) s.cards.push({ id, paid: item.paid });
   }
   return s;
 }

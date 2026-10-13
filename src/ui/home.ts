@@ -1,10 +1,11 @@
 import { dailyCategories, dailyQuestions } from '../core/daily';
 import { jstDate } from '../core/date';
 import { CATEGORY_LABEL, FIELDS, LEVELS, type Level } from '../core/quiz';
-import { currentStreak, isDone, loadAnswers, pruneOld, score } from '../core/storage';
+import { balance, currentStreak, isDone, loadAnswers, pruneOld, score } from '../core/storage';
 import { accountBox } from './account';
 import { h, hanamaru } from './dom';
-import { dateLabel, HOWTO, LEVEL_LABEL, LEVEL_NOTE } from './text';
+import { shiba } from './shiba';
+import { dateLabel, HOWTO, LEVEL_LABEL, LEVEL_NOTE, REWARD } from './text';
 
 /** 右の列を出す画面のはば (styles.css の .home と同じ値) */
 const WIDE = '(min-width: 64rem)';
@@ -68,6 +69,7 @@ export function renderHome(root: HTMLElement): void {
             h('h1', { class: 'brand' }, 'まいにち理科ノート'),
             h('p', { class: 'lead' }, '中学受験に出るような理科の問題を、毎日10問。'),
           ),
+          shiba(),
         ),
         h(
           'section',
@@ -77,6 +79,18 @@ export function renderHome(root: HTMLElement): void {
           h('p', { class: 'section-note' }, streak > 1 ? `${streak}日つづけて、とき終えています。その調子！` : '自分の学年をえらぼう。ほかの学年にちょうせんしてもOK。'),
         ),
         h('div', { class: 'levels' }, ...LEVELS.map((level) => levelCard(level, today))),
+        // スタンプカードと柴犬カードは、それぞれのページで見る
+        h(
+          'nav',
+          { class: 'reward-links', 'aria-label': REWARD.rewardLinks },
+          h('p', { class: 'points' }, h('span', { class: 'points-label' }, REWARD.pointsLabel), h('b', { class: 'points-num' }, REWARD.points(balance()))),
+          h(
+            'div',
+            { class: 'reward-buttons' },
+            h('a', { class: 'btn', href: '#/stamps' }, REWARD.stampTitle),
+            h('a', { class: 'btn', href: '#/cards' }, REWARD.cardsTitle),
+          ),
+        ),
       ),
       h(
         'aside',

@@ -48,7 +48,8 @@ export function renderQuiz(root: HTMLElement, level: Level, today: string): () =
       answered = true;
       const ok = chosen === q.answer;
       answers.push(chosen);
-      saveAnswers(today, level, questions, answers);
+      // 最後の問題なら、ここでスタンプとポイントがもらえる
+      const reward = saveAnswers(today, level, questions, answers);
 
       buttons.forEach((btn, i) => {
         btn.disabled = true;
@@ -65,7 +66,7 @@ export function renderQuiz(root: HTMLElement, level: Level, today: string): () =
           type: 'button',
           class: 'btn btn-primary btn-next',
           onclick: () => {
-            if (last) renderResult(root, level, questions, answers, true);
+            if (last) renderResult(root, level, questions, answers, true, { reward, month: Number(today.slice(5, 7)) });
             else show();
             window.scrollTo(0, 0);
           },

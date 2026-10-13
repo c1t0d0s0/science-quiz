@@ -1,7 +1,7 @@
 import { CATEGORIES, CATEGORY_LABEL, LEVELS, type Level, type Question } from '../core/quiz';
-import { score } from '../core/storage';
+import { balance, score, type FinishReward } from '../core/storage';
 import { figure, h, hanamaru, homeButton, mark, paragraphs, withRuby } from './dom';
-import { LEVEL_LABEL, resultNote, resultTitle } from './text';
+import { LEVEL_LABEL, resultNote, resultTitle, REWARD } from './text';
 
 /** 見直し用の 1 問分。まちがえた問題は、はじめから開いておく */
 function reviewItem(q: Question, chosen: number, index: number): HTMLElement {
@@ -36,7 +36,30 @@ function reviewItem(q: Question, chosen: number, index: number): HTMLElement {
 }
 
 /** 10 問とき終えたあとの画面。得点、分野ごとの正誤、全部の問題の見直し */
-export function renderResult(root: HTMLElement, level: Level, questions: Question[], answers: number[], celebrate: boolean): void {
+export function renderResult(
+  root: HTMLElement,
+  level: Level,
+  questions: Question[],
+  answers: number[],
+  celebrate: boolean,
+  got: { reward: FinishReward | null; month: number } = { reward: null, month: 0 },
+): void {
+  // とき終えた直後は、もらえたポイントとスタンプを知らせる
+  const t = REWARD;
+  const reward = got.reward;
+  const rewardBox = reward
+    ? h(
+        'section',
+        { class: 'result-stamp', 'aria-label': t.pointsLabel },
+        h('p', { class: 'result-reward' }, t.rewardQuiz(reward.points, reward.perfect)),
+        reward.stamp.added ? h('p', { class: 'result-stamp-title' }, t.stampDone) : null,
+        reward.stamp.weekPoints > 0 ? h('p', { class: 'result-reward' }, t.rewardWeek(reward.stamp.run)) : null,
+        reward.stamp.monthPoints > 0 ? h('p', { class: 'result-reward' }, t.rewardMonth(got.month)) : null,
+        h('p', { class: 'result-balance' }, `${t.pointsLabel} ${t.points(balance())}`),
+        h('div', { class: 'reward-buttons' }, h('a', { class: 'btn', href: '#/stamps' }, t.seeStamps), h('a', { class: 'btn', href: '#/cards' }, t.cardsTitle)),
+      )
+    : null;
+
   const correct = score(questions, answers);
   const total = questions.length;
   // 1 つ上の学年 (6 年生むけなら、1 つ下) の問題にもさそう
@@ -71,6 +94,7 @@ export function renderResult(root: HTMLElement, level: Level, questions: Questio
           h('p', { class: 'result-sub' }, resultNote(correct, total)),
         ),
       ),
+      rewardBox,
       h('section', { class: 'fields-result', 'aria-labelledby': 'by-field' }, h('h2', { id: 'by-field' }, '分野ごとの結果'), h('ul', {}, ...byCategory)),
       h(
         'section',

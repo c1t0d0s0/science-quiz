@@ -1,8 +1,9 @@
 import { addDays } from './date';
 import type { Level, Question } from './quiz';
-import { emptySnapshot, type Progress, type Snapshot } from './snapshot';
+import { earnedPoints, normalizeStamps, quizPoints, rewardFor, type StampReward } from './rewards';
+import { emptySnapshot, type OwnedCard, type Progress, type Snapshot } from './snapshot';
 
-export type { Progress } from './snapshot';
+export type { OwnedCard, Progress } from './snapshot';
 
 // 記録を置く場所。ログインしていない人の記録は今までどおり GUEST_PREFIX の下。
 // ログイン中の人の記録 (Firestore の写し) は、人ごとに別の場所に置き、ログアウトしたら消す。
@@ -103,13 +104,28 @@ export function loadAnswers(date: string, level: Level, questions: Question[]): 
   return saved.answers.filter((a) => Number.isInteger(a)).slice(0, questions.length);
 }
 
-export function saveAnswers(date: string, level: Level, questions: Question[], answers: number[]): void {
+/** 10 問をとき終えたときにもらえたもの */
+export interface FinishReward {
+  /** とき終えたことでもらえたポイント (全問正解の分をふくむ) */
+  points: number;
+  perfect: boolean;
+  /** その日のスタンプ。同じ日に別の学年をとき終えていたら、added は false */
+  stamp: StampReward;
+}
+
+/**
+ * 答えを保存する。最後の問題まで答えたときは、とき終えた記録をつけ、もらえたポイントとスタンプを返す
+ * (その日・その学年で、はじめてとき終えたときだけ)。
+ */
+export function saveAnswers(date: string, level: Level, questions: Question[], answers: number[]): FinishReward | null {
   write(`progress:${progressId(date, level)}`, { sig: signature(questions), answers, at: Date.now() } satisfies Progress);
-  if (answers.length >= questions.length) {
-    const done = readDone(level);
-    const points = score(questions, answers);
-    if (done[date] !== points) write(`done:${level}`, { ...done, [date]: points });
-  }
+  if (answers.length < questions.length) return null;
+  const done = readDone(level);
+  if (done[date] !== undefined) return null;
+  const before = getStamps();
+  const correct = score(questions, answers);
+  write(`done:${level}`, { ...done, [date]: correct });
+  return { points: quizPoints(correct, questions.length), perfect: correct >= questions.length, stamp: rewardFor(before, date) };
 }
 
 export const score = (questions: Question[], answers: number[]) => answers.filter((a, i) => a === questions[i]?.answer).length;
@@ -132,7 +148,7 @@ export function isDone(date: string, level: Level): boolean {
 
 /** 今日までつづけて、毎日 (どれかの学年を) とき終えた日数。今日がまだなら、きのうまでを数える */
 export function currentStreak(today: string): number {
-  const records = doneLevels().map(readDone);
+  const records = allDone();
   const played = (d: string) => records.some((r) => r[d] !== undefined);
   let day = played(today) ? today : addDays(today, -1);
   let n = 0;
@@ -155,6 +171,43 @@ export function pruneOld(today: string): void {
   }
 }
 
+// ---- スタンプ・ポイント・柴犬カード ----
+
+/** とき終えた記録の全部 (レベルごと) */
+const allDone = () => doneLevels().map(readDone);
+
+/**
+ * スタンプが押された日の一覧。どれかの学年の 10 問をとき終えた日に、1 日 1 個。
+ * とき終えた記録から毎回作るので、スタンプだけがずれることはない。
+ */
+export function getStamps(): string[] {
+  return normalizeStamps(allDone().flatMap((done) => Object.keys(done)));
+}
+
+export function getCards(): OwnedCard[] {
+  const saved = read<OwnedCard[]>('cards');
+  return Array.isArray(saved) ? saved.filter((c) => typeof c?.id === 'string' && typeof c.paid === 'number' && c.paid >= 0) : [];
+}
+
+/** これまでにもらったポイント = とき終えた 10 問の分 + スタンプの分 */
+export function earnedTotal(): number {
+  const quizzes = allDone().reduce((sum, done) => sum + Object.values(done).reduce((s, correct) => s + quizPoints(correct), 0), 0);
+  return quizzes + earnedPoints(getStamps()).total;
+}
+
+/** 今つかえるポイント = もらった分 − カードに使った分 */
+export function balance(): number {
+  return earnedTotal() - getCards().reduce((sum, c) => sum + c.paid, 0);
+}
+
+/** ポイントとカードを交換する。ポイントが足りないときや、もう持っているときは何もしない */
+export function buyCard(card: { id: string; price: number }): boolean {
+  const owned = getCards();
+  if (owned.some((c) => c.id === card.id) || balance() < card.price) return false;
+  write('cards', [...owned, { id: card.id, paid: card.price }]);
+  return true;
+}
+
 // ---- 記録をまるごと出し入れする (ログイン・Firestore との同期で使う) ----
 
 /** 今の場所にある記録を、まるごと取り出す */
@@ -163,6 +216,7 @@ export function exportSnapshot(): Snapshot {
   for (const level of doneLevels().sort()) {
     for (const [date, points] of Object.entries(readDone(level))) s.done[`${level}:${date}`] = points;
   }
+  s.cards = getCards();
   for (const key of keys()) {
     if (!key.startsWith('progress:')) continue;
     const p = read<Progress>(key);
@@ -186,6 +240,7 @@ export function importSnapshot(s: Snapshot, opts: { keepProgress?: boolean } = {
     }
     for (const level of doneLevels()) if (!(level in byLevel)) removeKey(`${prefix}done:${level}`);
     for (const [level, done] of Object.entries(byLevel)) write(`done:${level}`, done);
+    write('cards', s.cards);
     if (!opts.keepProgress) {
       for (const key of keys()) {
         if (key.startsWith('progress:') && !(key.slice('progress:'.length) in s.progress)) removeKey(prefix + key);

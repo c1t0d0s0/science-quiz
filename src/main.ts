@@ -2,8 +2,10 @@ import './styles.css';
 import { restoreStore, startCloud } from './cloud';
 import { jstDate } from './core/date';
 import type { Level } from './core/quiz';
+import { renderCards } from './ui/cards';
 import { renderHome } from './ui/home';
 import { renderQuiz } from './ui/quiz';
+import { renderStamps } from './ui/stamps';
 import { ACCOUNT } from './ui/text';
 
 // 前にログインしていた人がいれば、通信を待たずに、この端末に残っているその人の写しで画面を出す
@@ -21,6 +23,8 @@ function route(): void {
   // #/quiz/g3 は 3 年生むけ … #/quiz/g6 は 6 年生むけ
   const match = location.hash.match(/^#\/quiz\/(g[3-6])$/);
   if (match) cleanup = renderQuiz(app, match[1] as Level, shownDate);
+  else if (location.hash === '#/cards') renderCards(app);
+  else if (location.hash === '#/stamps') renderStamps(app);
   else renderHome(app);
   window.scrollTo(0, 0);
 }
