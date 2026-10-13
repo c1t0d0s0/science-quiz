@@ -51,3 +51,30 @@ export function solubilityFig(name: string, values: readonly number[]): string {
   );
 }
 
+
+/**
+ * 加えた量と発生した気体の体積のグラフ。(bendX, maxY) まではまっすぐふえ、そこから先は変わらない。
+ * xs・ys は目もりの数。
+ */
+export function gasGraph(o: { xLabel: string; yLabel: string; bendX: number; maxY: number; xs: readonly number[]; ys: readonly number[] }): string {
+  const x0 = 58;
+  const y0 = 178;
+  const xMax = o.xs[o.xs.length - 1];
+  const yMax = o.ys[o.ys.length - 1];
+  const x = (v: number) => x0 + (v / xMax) * 240;
+  const y = (v: number) => y0 - (v / yMax) * 140;
+  return fig(
+    330,
+    226,
+    `${o.xLabel}と${o.yLabel}の関係のグラフ。${o.xLabel}が${o.bendX}までは、${o.yLabel}はまっすぐふえて${o.maxY}になる。それより多くしても${o.maxY}のまま変わらない。`,
+    line(x0, 22, x0, y0, 'ln thin'),
+    line(x0, y0, 312, y0, 'ln thin'),
+    text(x0 - 8, 14, o.yLabel, { anchor: 'start', cls: 'small' }),
+    text(312, y0 + 36, o.xLabel, { anchor: 'end', cls: 'small' }),
+    text(x0 - 6, y0 + 5, '0', { anchor: 'end', cls: 'small' }),
+    ...o.xs.map((v) => line(x(v), y0, x(v), y0 - 140, 'ln thin dash') + text(x(v), y0 + 18, String(v), { cls: 'small' })),
+    ...o.ys.map((v) => line(x0, y(v), x0 + 240, y(v), 'ln thin dash') + text(x0 - 6, y(v) + 5, String(v), { anchor: 'end', cls: 'small' })),
+    polyline([[x(0), y(0)], [x(o.bendX), y(o.maxY)], [x(xMax), y(o.maxY)]], 'ln red'),
+    circle(x(o.bendX), y(o.maxY), 4, 'ink'),
+  );
+}

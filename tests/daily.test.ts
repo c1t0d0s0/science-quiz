@@ -1,36 +1,41 @@
 import { describe, expect, it } from 'vitest';
 import { dailyCategories, dailyQuestions } from '../src/core/daily';
 import { addDays, dayNumber, jstDate } from '../src/core/date';
-import { CATEGORIES, DAILY_COUNT, LEVELS, type Level } from '../src/core/quiz';
+import { CATEGORIES, CATEGORY_RING, DAILY_COUNT, FIELDS, LEVELS, type Level } from '../src/core/quiz';
 import { assertValid } from './helpers';
 
 const START = '2026-10-01';
 const DAYS = 400;
 
 describe('今日の 10 問', () => {
-  it('どの日も 10 問で、7 つのカテゴリーがすべて入っている', () => {
+  it('どの日も 10 問で、分野が重ならない', () => {
     for (const level of LEVELS) {
       for (let i = 0; i < DAYS; i++) {
         const date = addDays(START, i);
         const qs = dailyQuestions(date, level);
         expect(qs.length, date).toBe(DAILY_COUNT);
-        for (const c of CATEGORIES) expect(qs.some((q) => q.category === c), `${date} ${c}`).toBe(true);
-        // その日に出すと決めたカテゴリーの数と合っている
+        expect(new Set(qs.map((q) => q.category)).size, date).toBe(DAILY_COUNT);
+        // その日に出すと決めた分野と合っている
         expect(qs.map((q) => q.category).sort()).toEqual(dailyCategories(date).slice().sort());
-        // 同じ種類の問題が 1 日に 2 回出ない
-        expect(new Set(qs.map((q) => q.id)).size, date).toBe(DAILY_COUNT);
+        // 4 つの系統 (生物・地学・化学・物理) が、毎日すべて入っている
+        for (const f of FIELDS) expect(qs.some((q) => f.categories.includes(q.category)), `${date} ${f.name}`).toBe(true);
         qs.forEach((q) => assertValid(q, `${date} ${level} ${q.id}`));
       }
     }
   });
 
-  it('つづく 7 日間で、どのカテゴリーもちょうど 10 問ずつ出る', () => {
+  it('分野の輪には、16 の分野が 1 回ずつ入っている', () => {
+    expect([...CATEGORY_RING].sort()).toEqual([...CATEGORIES].sort());
+    expect(CATEGORIES.length).toBe(16);
+  });
+
+  it('つづく 8 日間で、どの分野もちょうど 5 問ずつ出る', () => {
     for (let i = 0; i < 60; i++) {
       const count = new Map<string, number>();
-      for (let d = 0; d < 7; d++) {
+      for (let d = 0; d < 8; d++) {
         for (const c of dailyCategories(addDays(START, i + d))) count.set(c, (count.get(c) ?? 0) + 1);
       }
-      for (const c of CATEGORIES) expect(count.get(c), `${addDays(START, i)} ${c}`).toBe(10);
+      for (const c of CATEGORIES) expect(count.get(c), `${addDays(START, i)} ${c}`).toBe(5);
     }
   });
 

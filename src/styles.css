@@ -59,6 +59,7 @@ body {
 
 h1,
 h2,
+h3,
 p,
 ul,
 ol,
@@ -358,6 +359,52 @@ rt {
 .hanamaru-daily {
   width: 3.5rem;
   height: 3.5rem;
+}
+
+.chip-today {
+  border-color: var(--ink);
+  background: var(--mark);
+}
+
+.chip-off {
+  border-color: var(--rule-soft);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.fields-note {
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.field-group {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.field-group .chips {
+  margin-top: 0;
+}
+
+.home .field-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.9;
 }
 
 .chips {
@@ -980,4 +1027,11 @@ rt {
   .result-fresh .hanamaru polyline {
     animation: none;
   }
+}
+
+/* 水 */
+.fig .water {
+  fill: #9cc9e8;
+  opacity: 0.45;
+  stroke: none;
 }

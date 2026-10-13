@@ -42,7 +42,8 @@ export function renderResult(root: HTMLElement, level: Level, questions: Questio
   // 1 つ上の学年 (6 年生むけなら、1 つ下) の問題にもさそう
   const other: Level = LEVELS[LEVELS.indexOf(level) + 1] ?? LEVELS[LEVELS.indexOf(level) - 1];
 
-  const byCategory = CATEGORIES.map((c) => {
+  // その日に出た分野だけを、いつもの順でならべる
+  const byCategory = CATEGORIES.filter((c) => questions.some((q) => q.category === c)).map((c) => {
     const marks = questions.map((q, i) => ({ q, ok: answers[i] === q.answer })).filter((x) => x.q.category === c);
     return h(
       'li',

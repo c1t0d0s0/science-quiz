@@ -110,3 +110,21 @@ export function chainFig(names: string[]): string {
     text(180, 72, '矢印は「食べられるもの → 食べるもの」', { cls: 'small' }),
   );
 }
+
+/** 生物の数や量のつり合いを表すピラミッド。names は下のだんから順 */
+export function pyramidFig(names: readonly string[]): string {
+  const h = 40;
+  const n = names.length;
+  return fig(
+    320,
+    n * h + 46,
+    `生物の数や量を表すピラミッドの図。下のだんほど数が多い。下から順に、${names.join('、')}。上のだんの生物が、すぐ下のだんの生物を食べる。`,
+    ...names.map((name, i) => {
+      const y = 12 + (n - 1 - i) * h;
+      const half = 140 - i * (80 / Math.max(1, n - 1));
+      const next = i === n - 1 ? half - 22 : 140 - (i + 1) * (80 / Math.max(1, n - 1));
+      return polygon([[160 - half, y + h], [160 + half, y + h], [160 + next, y], [160 - next, y]], i === 0 ? 'fill-soft' : 'box') + text(160, y + 26, name, { cls: 'small' });
+    }),
+    text(160, n * h + 34, '下のだんほど、数や量が多い', { cls: 'small' }),
+  );
+}

@@ -357,7 +357,7 @@ const upperMixed: Gen = {
   },
 };
 
-const upperDevices = facts('bulbs-u-devices', [
+export const upperDevices = facts('bulbs-u-devices', [
   {
     q: '乾電池の＋極と－極を、豆電球などを通さずに導線だけでつないだ回路を何といいますか。',
     a: 'ショート回路',
@@ -416,5 +416,4 @@ export const BULBS: Entry[] = [
   forGrades(upperLife, 5, 6),
   forGrades(upperCell, 6),
   forGrades(upperMixed, 6),
-  forGrades(upperDevices, 6),
 ];

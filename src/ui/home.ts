@@ -1,6 +1,6 @@
-import { dailyQuestions } from '../core/daily';
+import { dailyCategories, dailyQuestions } from '../core/daily';
 import { jstDate } from '../core/date';
-import { CATEGORIES, CATEGORY_LABEL, LEVELS, type Level } from '../core/quiz';
+import { CATEGORY_LABEL, FIELDS, LEVELS, type Level } from '../core/quiz';
 import { currentStreak, isDone, loadAnswers, pruneOld, score } from '../core/storage';
 import { accountBox } from './account';
 import { h, hanamaru } from './dom';
@@ -49,6 +49,7 @@ export function renderHome(root: HTMLElement): void {
   const today = jstDate();
   pruneOld(today);
   const streak = currentStreak(today);
+  const todays = new Set(dailyCategories(today));
 
   root.replaceChildren(
     h(
@@ -85,7 +86,23 @@ export function renderHome(root: HTMLElement): void {
           'section',
           { class: 'fields', 'aria-labelledby': 'fields-title' },
           h('h2', { id: 'fields-title' }, '出題される分野'),
-          h('ul', { class: 'chips' }, ...CATEGORIES.map((c) => h('li', { class: 'chip' }, CATEGORY_LABEL[c]))),
+          h('p', { class: 'fields-note' }, h('span', { class: 'chip chip-today' }, '色つき'), ' が、今日の10問に出る分野です。'),
+          ...FIELDS.map((f) =>
+            h(
+              'div',
+              { class: 'field-group' },
+              h('h3', { class: 'field-title' }, f.name),
+              h(
+                'ul',
+                { class: 'chips' },
+                ...f.categories.map((c) =>
+                  todays.has(c)
+                    ? h('li', { class: 'chip chip-today' }, CATEGORY_LABEL[c], h('span', { class: 'sr-only' }, '（今日出る）'))
+                    : h('li', { class: 'chip chip-off' }, CATEGORY_LABEL[c]),
+                ),
+              ),
+            ),
+          ),
         ),
         h(
           'details',

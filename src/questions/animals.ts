@@ -149,7 +149,7 @@ const lowerFood = facts('animals-l-food', [
   },
 ]);
 
-const lowerBones = facts('animals-l-bones', [
+export const lowerBones = facts('animals-l-bones', [
   {
     q: 'うでやあしで、骨と骨のつなぎ目になっていて、曲げることができる部分を何といいますか。',
     a: '関節',
@@ -255,7 +255,7 @@ const upperMedaka: Gen = {
     ])(),
 };
 
-const upperDigestion = facts('animals-u-digestion', [
+export const upperDigestion = facts('animals-u-digestion', [
   {
     q: '口から入った食べ物が通る順として正しいものはどれですか。',
     a: '口 → 食道 → 胃 → 小腸 → 大腸 → こう門',
@@ -300,7 +300,7 @@ const upperDigestion = facts('animals-u-digestion', [
   },
 ]);
 
-const upperHeart: Gen = {
+export const upperHeart: Gen = {
   id: 'animals-u-heart',
   make: (rng) =>
     pick(rng, [
@@ -343,7 +343,7 @@ const upperHeart: Gen = {
 const GILLS = ['フナ', 'サメ', 'メダカ', 'オタマジャクシ', 'コイ', 'マグロ'];
 const LUNGS = ['クジラ', 'イルカ', 'ウミガメ', 'ペンギン', 'ワニ', 'アザラシ'];
 
-const upperBreath: Gen = {
+export const upperBreath: Gen = {
   id: 'animals-u-breath',
   make: (rng) =>
     pick(rng, [
@@ -435,7 +435,7 @@ const CHAINS = [
   ['アブラナ', 'アブラムシ', 'テントウムシ', '小鳥'],
 ];
 
-const upperChain: Gen = {
+export const upperChain: Gen = {
   id: 'animals-u-chain',
   make: (rng) => {
     const chain = pick(rng, CHAINS);
@@ -458,7 +458,7 @@ const upperChain: Gen = {
 const PLANT_PLANKTON = ['ミカヅキモ', 'ケイソウ', 'アオミドロ', 'イカダモ', 'クンショウモ'];
 const ANIMAL_PLANKTON = ['ミジンコ', 'ゾウリムシ', 'アメーバ', 'ワムシ', 'ツリガネムシ'];
 
-const upperPlankton: Gen = {
+export const upperPlankton: Gen = {
   id: 'animals-u-plankton',
   make: (rng) =>
     pick(rng, [
@@ -486,7 +486,7 @@ const upperPlankton: Gen = {
     ])(),
 };
 
-const upperBirth = facts('animals-u-birth', [
+export const upperBirth = facts('animals-u-birth', [
   {
     q: 'ヒトの受精卵は、母親の体内のどこで育ちますか。',
     a: '子宮',
@@ -519,6 +519,86 @@ const upperBirth = facts('animals-u-birth', [
   },
 ]);
 
+const BONELESS = ['イカ', 'カニ', 'バッタ', 'ミミズ', 'クラゲ', 'アサリ', 'クモ'];
+const WITH_BONES = ['メダカ', 'カエル', 'ヘビ', 'ハト', 'ウサギ', 'コウモリ', 'カメ'];
+const CRUSTACEANS = ['エビ', 'カニ', 'ザリガニ', 'ダンゴムシ', 'ミジンコ'];
+const MOLLUSCS = ['イカ', 'タコ', 'アサリ', 'カタツムリ', 'ハマグリ'];
+
+const upperInvertebrate: Gen = {
+  id: 'animals-u-invertebrate',
+  make: (rng) =>
+    pick(rng, [
+      () =>
+        oneOf(rng, {
+          text: '次の動物のうち、背骨をもたない動物（無セキツイ動物）はどれですか。',
+          yes: BONELESS,
+          no: WITH_BONES,
+          explanation: '背骨をもつ動物をセキツイ動物（魚類・両生類・は虫類・鳥類・ほ乳類）、もたない動物を無セキツイ動物といいます。昆虫、エビやカニ、イカや貝、ミミズなどは無セキツイ動物です。',
+        }),
+      () =>
+        oneOf(rng, {
+          text: '次の動物のうち、背骨をもつ動物（セキツイ動物）はどれですか。',
+          yes: WITH_BONES,
+          no: BONELESS,
+          explanation: 'セキツイ動物は、魚類・両生類・は虫類・鳥類・ほ乳類の5つのなかまです。イカ、カニ、昆虫、ミミズなどには背骨がありません。',
+        }),
+      () =>
+        oneOf(rng, {
+          text: '次の動物のうち、エビやカニと同じ「こうかく類」のなかまはどれですか。',
+          yes: CRUSTACEANS.slice(2),
+          no: ['クモ', 'ムカデ', 'バッタ', 'イカ', 'アサリ', 'ミミズ'],
+          explanation: `${CRUSTACEANS.join('・')}などは、こうかく類のなかまです。昆虫類・クモ類・こうかく類などは、からだがかたいからでおおわれ、あしにふしがあるので、まとめて節足動物といいます。`,
+        }),
+      () =>
+        oneOf(rng, {
+          text: '次の動物のうち、からだがやわらかく、骨もふしもない「なん体動物」のなかまはどれですか。',
+          yes: MOLLUSCS,
+          no: ['エビ', 'カニ', 'バッタ', 'クモ', 'ムカデ', 'メダカ'],
+          explanation: `${MOLLUSCS.join('・')}などは、なん体動物のなかまです。からだはやわらかく、外とうまくというまくで内臓がつつまれています。貝がらをもつものもいます。`,
+        }),
+      () =>
+        choice(rng, {
+          text: '昆虫類・クモ類・こうかく類に共通する特ちょうはどれですか。',
+          correct: 'からだがかたいからでおおわれ、あしにふしがある',
+          wrong: ['背骨があり、からだの内がわに骨がある', 'あしが6本で、はねがある', 'からだがやわらかく、ふしがない'],
+          explanation: 'からだの外がわがかたいから（外骨かく）でおおわれ、からだやあしにふしがある動物を節足動物といいます。あしが6本なのは昆虫類だけです。',
+        }),
+    ])(),
+};
+
+const upperEater = facts('animals-u-eater', [
+  {
+    q: 'ライオンなどの肉食動物の目は、顔の前の方についています。これは、どんなことに役立っていますか。',
+    a: 'えものまでのきょりを、正確につかむこと',
+    wrong: ['後ろまで広いはんいを見わたすこと', '暗いところで、ものを見ること', '遠くの音を聞くこと'],
+    ex: '目が前向きについていると、両目で同時に見えるはんいが広くなり、ものを立体的に見て、きょりを正確につかめます。えものをとらえるのに役立ちます。',
+  },
+  {
+    q: 'シマウマなどの草食動物の目は、顔の横の方についています。これは、どんなことに役立っていますか。',
+    a: '広いはんいを見わたして、てきを早く見つけること',
+    wrong: ['えものまでのきょりを、正確につかむこと', '小さな虫を見つけること', '草の色を見分けること'],
+    ex: '目が横向きについていると、後ろの方まで広いはんいを見わたすことができ、近づいてくる肉食動物を早く見つけてにげることができます。',
+  },
+  {
+    q: '肉食動物の歯で、とくに発達しているのはどれですか。',
+    a: 'えものをとらえ、肉を引きさく、するどい犬歯',
+    wrong: ['草をすりつぶす、平たい臼歯', '草をかみ切る、大きな門歯', '歯は生えていない'],
+    ex: '肉食動物は、するどい犬歯でえものをとらえ、とがった臼歯で肉を切りさきます。草食動物は、草をかみ切る門歯と、すりつぶす平たい臼歯が発達しています。',
+  },
+  {
+    q: '草食動物の歯で、とくに発達しているのはどれですか。',
+    a: '草をすりつぶす、平たい臼歯',
+    wrong: ['肉を引きさく、するどい犬歯', 'えものにつきさす、きば', '歯は生えていない'],
+    ex: '草食動物は、門歯で草をかみ切り、平たく大きな臼歯ですりつぶします。草は消化しにくいので、腸も長くなっています。',
+  },
+  {
+    q: '草食動物の腸の長さを、からだの大きさが同じくらいの肉食動物とくらべると、どうなっていますか。',
+    a: '草食動物の方が長い',
+    wrong: ['肉食動物の方が長い', 'どちらも同じ', '草食動物には腸がない'],
+    ex: '植物は消化に時間がかかるので、草食動物の腸は、からだの長さにくらべてとても長くなっています。',
+  },
+]);
+
 /** ジェネレーターと、それを出す学年 */
 export const ANIMALS: Entry[] = [
   forGrades(lowerInsect, 3),
@@ -526,14 +606,9 @@ export const ANIMALS: Entry[] = [
   forGrades(lowerFood, 3),
   forGrades(lowerGrow, 3, 4),
   forGrades(lowerWinter, 4),
-  forGrades(lowerBones, 4),
   forGrades(lowerSeason, 4),
   forGrades(upperMedaka, 5),
-  forGrades(upperBirth, 5),
   forGrades(upperVertebrate, 5, 6),
-  forGrades(upperPlankton, 5, 6),
-  forGrades(upperDigestion, 6),
-  forGrades(upperHeart, 6),
-  forGrades(upperBreath, 6),
-  forGrades(upperChain, 6),
+  forGrades(upperInvertebrate, 5, 6),
+  forGrades(upperEater, 6),
 ];

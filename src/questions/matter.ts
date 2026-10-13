@@ -1,5 +1,5 @@
 import { shuffle } from '../core/rng';
-import { heatingFig, solubilityFig } from '../diagrams/graph';
+import { gasGraph, heatingFig, solubilityFig } from '../diagrams/graph';
 import { fig, circle, line, rect, tag, text, polygon } from '../diagrams/svg';
 import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, sample, type Entry, type Gen } from './helpers';
 
@@ -55,7 +55,7 @@ const lowerMaterial: Gen = {
 const ATTRACTED = ['鉄のくぎ', 'スチールかん', 'ゼムクリップ（鉄）', '鉄のはさみの刃', 'さ鉄'];
 const NOT_ATTRACTED = ['アルミかん', '10円玉', '1円玉', 'ガラスのコップ', '木のわりばし', 'アルミニウムはく', '消しゴム'];
 
-const lowerMagnet: Gen = {
+export const lowerMagnet: Gen = {
   id: 'matter-l-magnet',
   make: (rng) =>
     pick(rng, [
@@ -163,7 +163,7 @@ const lowerAir = facts('matter-l-air', [
   },
 ]);
 
-const lowerExpand = facts('matter-l-expand', [
+export const lowerExpand = facts('matter-l-expand', [
   {
     q: '空気・水・金属をそれぞれあたためたとき、体積の変わり方がいちばん大きいものはどれですか。',
     a: '空気',
@@ -204,7 +204,7 @@ const lowerExpand = facts('matter-l-expand', [
 
 const STATES = ['氷だけ', '氷と水がまじっている', '水だけ', '水と水蒸気がまじっている（ふっとうしている）'];
 
-const lowerState: Gen = {
+export const lowerState: Gen = {
   id: 'matter-l-state',
   make: (rng) =>
     pick(rng, [
@@ -265,7 +265,7 @@ function barFig(heat: number, points: { at: number; label: string }[]): string {
   );
 }
 
-const lowerHeat: Gen = {
+export const lowerHeat: Gen = {
   id: 'matter-l-heat',
   make: (rng) =>
     pick(rng, [
@@ -681,16 +681,77 @@ const upperMetal = facts('matter-u-metal', [
   },
 ]);
 
+const upperGasGraph: Gen = {
+  id: 'matter-u-gasgraph',
+  make: (rng) => {
+    // 石灰石 1g あたり rate cm³ の二酸化炭素が出る。塩酸がなくなる石灰石の量が bend
+    const rate = pick(rng, [200, 240]);
+    const bend = pick(rng, [2, 3, 4]);
+    const acid = pick(rng, [20, 30, 50]);
+    const max = rate * bend;
+    const svg = gasGraph({
+      xLabel: '石灰石の重さ(g)',
+      yLabel: '発生した気体の体積(cm³)',
+      bendX: bend,
+      maxY: max,
+      xs: [1, 2, 3, 4, 5, 6],
+      ys: Array.from({ length: bend + 1 }, (_, i) => rate * (i + 1)),
+    });
+    const intro = `図は、うすい塩酸${acid}cm³に、いろいろな重さの石灰石を加えたときに発生した二酸化炭素の体積を表したグラフです。`;
+    return pick(rng, [
+      () => {
+        const x = bend + pick(rng, [1, 2]);
+        return numeric(rng, {
+          text: `${intro}この塩酸${acid}cm³に石灰石を${x}g加えると、石灰石は何gとけ残りますか。`,
+          svg,
+          correct: x - bend,
+          wrong: [x, bend, x - bend + 1, x + bend, 0.5],
+          unit: 'g',
+          explanation: `グラフが折れ曲がっている${bend}gのところで、塩酸がすべて反応してなくなります。それより多く加えた石灰石はとけ残るので、${x} − ${bend} ＝ ${x - bend}（g）です。`,
+        });
+      },
+      () => {
+        const x = bend + pick(rng, [1, 2]);
+        return numeric(rng, {
+          text: `${intro}この塩酸${acid}cm³に石灰石を${x}g加えると、二酸化炭素は何cm³発生しますか。`,
+          svg,
+          correct: max,
+          wrong: [rate * x, rate, max / 2, rate * (x - bend), max + rate * 2].filter((v) => v !== max),
+          unit: 'cm³',
+          explanation: `塩酸${acid}cm³とちょうど反応する石灰石は${bend}gで、そのとき${max}cm³の二酸化炭素が発生します。石灰石をそれより多く加えても、塩酸がもうないので、発生する量は${max}cm³のままです。`,
+        });
+      },
+      () => {
+        const x = bend + pick(rng, [1, 2]);
+        const got = rate * Math.min(x, bend * 2);
+        return numeric(rng, {
+          text: `${intro}同じこさの塩酸を2倍の${acid * 2}cm³にして、石灰石を${x}g加えると、二酸化炭素は何cm³発生しますか。`,
+          svg,
+          correct: got,
+          wrong: [max, max * 2, rate * bend * 2 + rate, rate, got / 2, rate * (x + 1)].filter((v) => v !== got),
+          unit: 'cm³',
+          explanation: `塩酸が2倍になると、ちょうど反応する石灰石も2倍の${bend * 2}gになります。加えた石灰石${x}gは${x <= bend * 2 ? 'すべて反応する' : `そのうち${bend * 2}gだけが反応する`}ので、${rate} × ${Math.min(x, bend * 2)} ＝ ${got}（cm³）です。`,
+        });
+      },
+      () =>
+        numeric(rng, {
+          text: `${intro}石灰石1gがすべて反応すると、二酸化炭素は何cm³発生しますか。`,
+          svg,
+          correct: rate,
+          wrong: [max, rate / 2, rate * 2, rate + 100, max / (bend + 1)].filter((v) => v !== rate),
+          unit: 'cm³',
+          explanation: `グラフがまっすぐふえている部分を読みます。石灰石${bend}gで${max}cm³なので、1gあたり ${max} ÷ ${bend} ＝ ${rate}（cm³）です。`,
+        }),
+    ])();
+  },
+};
+
 /** ジェネレーターと、それを出す学年 */
 export const MATTER: Entry[] = [
   forGrades(lowerWeight, 3),
-  forGrades(lowerMagnet, 3),
   forGrades(lowerVolume, 3),
   forGrades(lowerMaterial, 3, 4),
   forGrades(lowerAir, 4),
-  forGrades(lowerExpand, 4),
-  forGrades(lowerState, 4),
-  forGrades(lowerHeat, 4),
   forGrades(upperConcentration, 5),
   forGrades(upperSolubility, 5),
   forGrades(upperDissolve, 5),
@@ -700,4 +761,5 @@ export const MATTER: Entry[] = [
   forGrades(upperBurn, 6),
   forGrades(upperNeutral, 6),
   forGrades(upperMetal, 6),
+  forGrades(upperGasGraph, 6),
 ];

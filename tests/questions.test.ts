@@ -24,8 +24,8 @@ function each(id: string, check: (text: string, correct: string, alt: string) =>
 const numbers = (s: string) => (s.match(/\d+(\.\d+)?/g) ?? []).map(Number);
 
 describe('問題のジェネレーター', () => {
-  it('どの学年にも、カテゴリーごとに 3 つ以上ある (1 日に 2 問まで出す)', () => {
-    for (const level of LEVELS) for (const c of CATEGORIES) expect(GENERATORS[level][c].length, `${level} ${c}`).toBeGreaterThanOrEqual(3);
+  it('どの学年にも、分野ごとに 2 つ以上ある (同じ分野が回ってきたとき、ちがう問題を出せる)', () => {
+    for (const level of LEVELS) for (const c of CATEGORIES) expect(GENERATORS[level][c].length, `${level} ${c}`).toBeGreaterThanOrEqual(2);
     expect(new Set(ALL.map((g) => g.id)).size).toBe(ALL.length);
   });
 
@@ -163,6 +163,170 @@ describe('計算問題の検算', () => {
         }
       }
     }
+  });
+});
+
+// 新しく足した分野の計算問題
+describe('計算問題の検算 (地学・物理・熱)', () => {
+  const value = (correct: string) => numbers(correct)[0];
+
+  it('ばね: のびは重さに比例し、全体の長さは もとの長さ + のび', () => {
+    each('spring-l-stretch', (text, correct) => {
+      const [w0, s0, w] = numbers(text);
+      expect(value(correct) * w0).toBe(s0 * w);
+    });
+    each('spring-l-length', (text, correct) => {
+      const [natural, , per, last] = numbers(text);
+      if (text.includes('全体の長さが')) expect(value(correct)).toBe(((last - natural) / per) * 10);
+      else expect(value(correct)).toBe(natural + (per * last) / 10);
+    });
+    each('spring-u-combo', (text, correct) => {
+      const per = numbers(text)[1];
+      const w = Number(text.match(/に(\d+)gのおもりをつるしました/)![1]);
+      const single = (per * w) / 10;
+      expect(value(correct)).toBe(text.includes('たてに1列') ? single * 2 : single / 2);
+    });
+  });
+
+  it('浮力: おしのけた水の重さの分だけ軽くなる', () => {
+    each('spring-u-buoyancy', (text, correct) => {
+      const [, , a, b] = numbers(text);
+      if (text.includes('ばねばかりは何gをしめしますか')) expect(value(correct)).toBe(a - b);
+      else if (text.includes('体積は何cm³')) expect(value(correct)).toBe(a - b);
+      else expect(value(correct)).toBe(a);
+    });
+    each('spring-u-pressure', (text, correct) => {
+      if (!text.includes('水面より下')) return;
+      const [, , , weight] = numbers(text);
+      expect(value(correct)).toBe(weight);
+    });
+  });
+
+  it('密度: 重さ ÷ 体積', () => {
+    each('spring-u-density', (text, correct) => {
+      const n = numbers(text);
+      if (text.includes('（密度）は何g')) expect(value(correct)).toBeCloseTo(n[1] / n[0], 6);
+      else if (text.includes('の重さは何g')) expect(value(correct)).toBeCloseTo(n[1] * n[2], 6);
+    });
+  });
+
+  it('熱量: 水の重さ × 上がった温度', () => {
+    each('heat-u-calorie', (text, correct) => {
+      const n = numbers(text);
+      if (text.startsWith('水1g')) expect(value(correct)).toBe(n[4] * (n[5] - n[3]));
+      else if (text.startsWith('水100g')) expect(value(correct) * n[3]).toBe(n[2] * 100);
+      else expect(value(correct) * 4).toBe(n[2] * n[3]);
+    });
+    each('heat-u-mix', (text, correct) => {
+      const [t1, m1, t2, m2] = numbers(text);
+      const t = value(correct);
+      // 冷たい水が受けとった熱と、熱い水が失った熱が等しい
+      expect(m1 * (t - t1)).toBe(m2 * (t2 - t));
+    });
+    each('heat-u-ice', (text, correct) => {
+      const n = numbers(text);
+      const g = n[8];
+      const t = n[9];
+      expect(value(correct)).toBe(g * 80 + g * t);
+    });
+  });
+
+  it('電熱線: 上がる温度は時間に比例し、水の量に反比例する', () => {
+    each('magnet-u-heater', (text, correct) => {
+      if (!text.includes('何℃上がりますか')) return;
+      const [, , rise, minutes, water] = numbers(text);
+      expect(value(correct)).toBe((rise * (minutes / 5)) / (water / 100));
+    });
+  });
+
+  it('気体の発生量: 塩酸がなくなるまでは石灰石に比例する', () => {
+    each('matter-u-gasgraph', (text, correct, alt) => {
+      const m = alt.match(/が(\d+)までは.*ふえて(\d+)になる/)!;
+      const bend = Number(m[1]);
+      const max = Number(m[2]);
+      const rate = max / bend;
+      const n = numbers(text);
+      if (text.includes('とけ残りますか')) expect(value(correct)).toBe(n[2] - bend);
+      else if (text.includes('2倍の')) expect(value(correct)).toBe(rate * Math.min(n[3], bend * 2));
+      else if (text.includes('石灰石1gが')) expect(value(correct)).toBe(rate);
+      else expect(value(correct)).toBe(rate * Math.min(n[2], bend));
+    });
+  });
+
+  it('しつ度: ふくまれている量 ÷ 最大の量 × 100', () => {
+    each('weather-u-humidity', (text, correct) => {
+      const n = numbers(text);
+      if (text.includes('しつ度は何%')) expect(value(correct)).toBe((n[3] / n[1]) * 100);
+      else if (text.includes('何gの水蒸気')) expect(value(correct)).toBe((n[1] * n[2]) / 100);
+    });
+  });
+
+  it('地震: 初期び動けいぞく時間は、2 つの波がとどく時間の差で、きょりに比例する', () => {
+    each('earth-u-quake', (text, correct) => {
+      const n = numbers(text);
+      if (text.includes('は何秒ですか')) expect(value(correct)).toBe(n[2] / n[1] - n[2] / n[0]);
+      else if (text.includes('何kmはなれていますか')) expect(value(correct)).toBe(n[0] * (n[2] / n[1]));
+    });
+  });
+
+  it('音: きょり = 速さ × 時間 (はね返るときは往復)', () => {
+    each('light-u-sound', (text, correct) => {
+      if (!text.includes('きょりは何m')) return;
+      const [t, speed] = numbers(text);
+      expect(value(correct)).toBe(speed * t);
+    });
+    each('light-u-echo', (text, correct) => {
+      const [a, b] = numbers(text);
+      if (text.includes('岸ぺき')) expect(value(correct) * b).toBe(a * 2);
+      else expect(value(correct) * 2).toBe(a * b);
+    });
+  });
+
+  it('光: 反しゃ角は入しゃ角と等しい', () => {
+    each('light-l-reflect', (text, correct) => {
+      const [a] = numbers(text);
+      expect(value(correct)).toBe(text.includes('入ってくる光と、はね返った光との間') ? a * 2 : a);
+    });
+  });
+
+  it('速さ: きょり ÷ 時間', () => {
+    each('motion-u-speed', (text, correct) => {
+      const [a, b] = numbers(text);
+      if (text.includes('秒速何m')) expect(value(correct)).toBe(a / b);
+      else if (text.includes('時速何km')) expect(value(correct)).toBeCloseTo((a * 3600) / 1000, 6);
+      else expect(value(correct)).toBe(a * b);
+    });
+  });
+
+  it('ふりこ: 平均の出し方と、長さと時間の関係', () => {
+    each('motion-u-period', (text, correct) => {
+      const [, , t1, t2, t3] = numbers(text);
+      expect(value(correct)).toBeCloseTo((t1 + t2 + t3) / 3 / 10, 6);
+    });
+    each('motion-u-length', (text, correct) => {
+      const n = numbers(text).slice(5);
+      // n = [長さ, 1, 時間, …]。時間は、長さの平方根に比例する
+      if (text.includes('何秒ですか')) expect(value(correct)).toBeCloseTo(n[2] * Math.sqrt(n[3] / n[0]), 6);
+      else expect(value(correct)).toBeCloseTo(n[0] * (n[4] / n[2]) ** 2, 6);
+    });
+    each('motion-u-pendulum', (text, correct, alt) => {
+      if (!alt) return;
+      const lens = [...alt.matchAll(/(.)は糸の長さ(\d+)cm/g)].map((m) => ({ label: m[1], len: Number(m[2]) }));
+      const sorted = lens.slice().sort((a, b) => a.len - b.len);
+      expect(correct).toBe(text.includes('長い') ? sorted[3].label : sorted[0].label);
+    });
+  });
+
+  it('電磁石: 答えは、まき数も乾電池の数も、ほかに負けていない', () => {
+    each('magnet-u-strength', (text, correct, alt) => {
+      const list = [...alt.matchAll(/(.)は、コイルが(\d+)回まきで、乾電池(\d+)個/g)].map((m) => ({ label: m[1], turns: Number(m[2]), cells: Number(m[3]) }));
+      const best = list.find((p) => p.label === correct)!;
+      const strongest = text.includes('強い');
+      for (const p of list) {
+        if (strongest) expect(p.turns <= best.turns && p.cells <= best.cells).toBe(true);
+        else expect(p.turns >= best.turns && p.cells >= best.cells).toBe(true);
+      }
+    });
   });
 });
 
