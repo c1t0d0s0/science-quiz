@@ -318,6 +318,30 @@ describe('計算問題の検算 (地学・物理・熱)', () => {
     });
   });
 
+  it('じょう発と再結しょう: へった水の量、じょう発させた水や冷やした温度で出てくる量', () => {
+    each('weather-l-evap', (text, correct) => {
+      if (!text.includes('毎日')) return;
+      const [start, perDay, days] = numbers(text);
+      expect(value(correct)).toBe(start - perDay * days);
+    });
+    // グラフ (図) の値は、ジェネレーターと同じ表から読む
+    const table: Record<string, number[]> = { ホウ酸: [5, 9, 15, 24], ミョウバン: [6, 12, 25, 71], しょう酸カリウム: [32, 64, 109, 169] };
+    const at = (name: string, temp: number) => table[name][[20, 40, 60, 80].indexOf(temp)];
+    each('matter-u-recrystal', (text, correct) => {
+      const name = Object.keys(table).find((k) => text.includes(`図は、${k}が`));
+      if (!name) return;
+      // 最初の数は、グラフの説明の「水100g」
+      const n = numbers(text).slice(1);
+      if (text.includes('保ったまま')) {
+        const [t, , , evap] = n;
+        expect(value(correct)).toBeCloseTo((at(name, t) * evap) / 100, 6);
+      } else {
+        const [hi, water, evap, lo] = n;
+        expect(value(correct)).toBeCloseTo((at(name, hi) * water - at(name, lo) * (water - evap)) / 100, 6);
+      }
+    });
+  });
+
   it('音: きょり = 速さ × 時間 (はね返るときは往復)', () => {
     each('light-u-sound', (text, correct) => {
       if (!text.includes('きょりは何m')) return;
