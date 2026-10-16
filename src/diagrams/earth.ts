@@ -109,3 +109,56 @@ export function sunPathFig(labels: readonly string[]): string {
     text(cx, base + 20, '観測者', { cls: 'small' }),
   );
 }
+
+/** ハザードマップで、ある地点が入っている区域 */
+export type FloodZone = 'deep' | 'shallow' | 'safe';
+export const FLOOD_ZONE_LABEL: Record<FloodZone, string> = { deep: '3m以上', shallow: '0.5〜3m', safe: '浸水しない' };
+
+/**
+ * 洪水のハザードマップ (上から見た図)。川にそって、浸水が深い区域・浅い区域・浸水しない高台がならぶ。
+ * riverLeft で川を左右どちらにかくか、labels でそれぞれの区域に置く地点の記号、ys でその高さを決める。
+ */
+export function hazardFig(riverLeft: boolean, labels: Record<FloodZone, string>, ys: Record<FloodZone, number>): string {
+  const width = 340;
+  const top = 12;
+  const h = 150;
+  // 左から 川・深い区域・浅い区域・高台 のはば (riverLeft でないときは、左右を入れかえる)
+  const spans: [string, number, number][] = [
+    ['river', 20, 60],
+    ['deep', 60, 140],
+    ['shallow', 140, 230],
+    ['safe', 230, 320],
+  ];
+  const x = (a: number, b: number): [number, number] => (riverLeft ? [a, b] : [width - b, width - a]);
+  const zone = (name: string): [number, number] => x(...(spans.find((s) => s[0] === name)!.slice(1) as [number, number]));
+  const fill = (name: FloodZone, left: number, w: number, y: number, hh: number) =>
+    name === 'deep' ? rect(left, y, w, hh, 'water') + rect(left, y, w, hh, 'water') : name === 'shallow' ? rect(left, y, w, hh, 'water') : rect(left, y, w, hh, 'box');
+  const [rl, rr] = zone('river');
+  const [sl, sr] = zone('safe');
+  const hill = (sl + sr) / 2;
+  const legendX = [82, 160, 246];
+  const legend = (['deep', 'shallow', 'safe'] as const).map((z, i) => fill(z, legendX[i], 18, 182, 14) + text(legendX[i] + 24, 194, FLOOD_ZONE_LABEL[z], { anchor: 'start', cls: 'tiny' }));
+  const side = riverLeft ? '左' : '右';
+  return fig(
+    width,
+    206,
+    `洪水のハザードマップ。図の${side}はしを、川がたてに流れている。川に近い区域は浸水の深さが3m以上、その外がわは0.5〜3m、いちばんはなれた高台は浸水しないと予想されている。${labels.deep}は3m以上の区域、${labels.shallow}は0.5〜3mの区域、${labels.safe}は高台にある。`,
+    ...(['deep', 'shallow', 'safe'] as const).map((z) => {
+      const [a, b] = zone(z);
+      return fill(z, a, b - a, top, h);
+    }),
+    rect(rl, top, rr - rl, h, 'box'),
+    arrow((rl + rr) / 2, top + 30, (rl + rr) / 2, top + 110, 'ln red'),
+    text((rl + rr) / 2, top + 132, '川', { cls: 'small' }),
+    // 高台の等高線
+    path(`M${hill - 34} ${top + h / 2}a34 46 0 1 0 68 0a34 46 0 1 0 -68 0`, 'ln thin'),
+    path(`M${hill - 18} ${top + h / 2}a18 26 0 1 0 36 0a18 26 0 1 0 -36 0`, 'ln thin'),
+    text(hill, top + 16, '高台', { cls: 'tiny' }),
+    ...(['deep', 'shallow', 'safe'] as const).map((z) => {
+      const [a, b] = zone(z);
+      return tag((a + b) / 2, top + ys[z], labels[z]);
+    }),
+    ...legend,
+    text(20, 194, '浸水の深さ', { anchor: 'start', cls: 'tiny' }),
+  );
+}

@@ -269,6 +269,21 @@ describe('計算問題の検算 (地学・物理・熱)', () => {
     });
   });
 
+  it('防災: ハザードマップの区域と、緊急地震速報からゆれがとどくまでの時間', () => {
+    each('earth-u-hazard', (text, correct, alt) => {
+      const zone = (name: string) => alt.match(new RegExp(`(.)は${name}`))![1];
+      if (text.includes('いちばん深く')) expect(correct).toBe(zone('3m以上の区域'));
+      else if (text.includes('いちばん安全')) expect(correct).toBe(zone('高台'));
+      else if (text.includes('0.5〜3mになると')) expect(correct).toBe(zone('0.5〜3mの区域'));
+      else expect(alt).toMatch(new RegExp(`${text.match(/(.)の地点では/)![1]}は${correct}の区域`));
+    });
+    each('earth-u-disaster', (text, correct) => {
+      if (!text.includes('緊急地震速報')) return;
+      const [, s, t, d] = numbers(text);
+      expect(value(correct)).toBe(d / s - t);
+    });
+  });
+
   it('音: きょり = 速さ × 時間 (はね返るときは往復)', () => {
     each('light-u-sound', (text, correct) => {
       if (!text.includes('きょりは何m')) return;
