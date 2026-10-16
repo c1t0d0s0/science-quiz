@@ -1,6 +1,7 @@
 import { shuffle } from '../core/rng';
 import { flowerFig, plantFig } from '../diagrams/biology';
 import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, type Entry, type Gen } from './helpers';
+import { upperMicroscope } from './tools';
 
 // ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
@@ -399,6 +400,7 @@ export const PLANTS: Entry[] = [
   forGrades(upperSeed, 5),
   forGrades(upperFlower, 5),
   forGrades(upperPollination, 5),
+  forGrades(upperMicroscope, 5, 6),
   forGrades(upperClass, 5, 6),
   forGrades(upperTranspiration, 6),
   forGrades(upperPetal, 6),

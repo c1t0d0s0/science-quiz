@@ -1,6 +1,7 @@
 import { shuffle } from '../core/rng';
 import { chainFig, insectFig, medakaFig } from '../diagrams/biology';
 import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, type Entry, type Gen } from './helpers';
+import { upperScope } from './tools';
 
 // ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
@@ -608,6 +609,7 @@ export const ANIMALS: Entry[] = [
   forGrades(lowerWinter, 4),
   forGrades(lowerSeason, 4),
   forGrades(upperMedaka, 5),
+  forGrades(upperScope, 5, 6),
   forGrades(upperVertebrate, 5, 6),
   forGrades(upperInvertebrate, 5, 6),
   forGrades(upperEater, 6),

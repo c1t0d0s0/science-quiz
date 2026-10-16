@@ -317,6 +317,34 @@ describe('計算問題の検算 (地学・物理・熱)', () => {
     });
   });
 
+  it('実験器具: 目もりの読み、ふえた体積、けんび鏡の倍率', () => {
+    // 図の説明 (aria-label) の「a の目もりから b 目もり上」を、1 目もり = 1 で読む
+    const reading = (alt: string) => {
+      const m = alt.match(/(\d+)(?:℃|mL)の目もりから(\d+)目もり上/)!;
+      return Number(m[1]) + Number(m[2]);
+    };
+    each('tools-l-thermometer', (_, correct, alt) => expect(value(correct)).toBe(reading(alt)));
+    each('tools-u-cylinder', (text, correct, alt) => {
+      const n = numbers(text);
+      if (alt) expect(value(correct)).toBe(reading(alt));
+      else if (text.includes('小石の体積')) expect(value(correct)).toBe(n[1] - n[0]);
+    });
+    each('tools-u-microscope', (text, correct) => {
+      const n = numbers(text);
+      if (text.includes('このときの倍率')) expect(value(correct)).toBe(n[0] * n[1]);
+      else if (text.includes('何こならんで')) expect(value(correct)).toBe((n[1] * n[0]) / n[2]);
+    });
+  });
+
+  it('電流計: 針のさす目もり × (つないだ −たんし ÷ 5)', () => {
+    const full: Record<string, number> = { '50mA': 50, '500mA': 500, '5A': 5000 };
+    each('tools-u-ammeter', (_, correct, alt) => {
+      if (!alt) return;
+      const m = alt.match(/針は([\d.]+)の目もり.*、(\d+m?A)の−たんし/)!;
+      expect(value(correct)).toBeCloseTo((Number(m[1]) * full[m[2]]) / 5, 6);
+    });
+  });
+
   it('電磁石: 答えは、まき数も乾電池の数も、ほかに負けていない', () => {
     each('magnet-u-strength', (text, correct, alt) => {
       const list = [...alt.matchAll(/(.)は、コイルが(\d+)回まきで、乾電池(\d+)個/g)].map((m) => ({ label: m[1], turns: Number(m[2]), cells: Number(m[3]) }));

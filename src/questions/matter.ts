@@ -2,6 +2,7 @@ import { shuffle } from '../core/rng';
 import { gasGraph, heatingFig, solubilityFig } from '../diagrams/graph';
 import { fig, circle, line, rect, tag, text, polygon } from '../diagrams/svg';
 import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, sample, type Entry, type Gen } from './helpers';
+import { upperBalance, upperBurner, upperCylinder, upperDetector } from './tools';
 
 // ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
@@ -755,6 +756,8 @@ export const MATTER: Entry[] = [
   forGrades(upperConcentration, 5),
   forGrades(upperSolubility, 5),
   forGrades(upperDissolve, 5),
+  forGrades(upperCylinder, 5),
+  forGrades(upperBalance, 5),
   forGrades(upperSolute, 5, 6),
   forGrades(upperSolution, 6),
   forGrades(upperGas, 6),
@@ -762,4 +765,6 @@ export const MATTER: Entry[] = [
   forGrades(upperNeutral, 6),
   forGrades(upperMetal, 6),
   forGrades(upperGasGraph, 6),
+  forGrades(upperBurner, 6),
+  forGrades(upperDetector, 6),
 ];

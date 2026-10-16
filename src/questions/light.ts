@@ -1,5 +1,6 @@
 import { lensFig, mirrorFig, waveGrid } from '../diagrams/physics';
 import { choice, facts, fixed, forGrades, KANA, numeric, pick, type Entry, type Gen } from './helpers';
+import { lowerLens } from './tools';
 
 const lowerMirror = facts('light-l-mirror', [
   {
@@ -312,6 +313,7 @@ const upperEcho: Gen = {
 export const LIGHT: Entry[] = [
   forGrades(lowerMirror, 3),
   forGrades(lowerSound, 3),
+  forGrades(lowerLens, 3),
   forGrades(lowerReflect, 4),
   forGrades(lowerPitch, 4),
   forGrades(upperRefract, 5, 6),

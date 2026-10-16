@@ -3,6 +3,7 @@ import { coilGrid } from '../diagrams/physics';
 import { upperDevices } from './bulbs';
 import { choice, facts, fixed, forGrades, KANA, numeric, pick, type Entry, type Gen } from './helpers';
 import { lowerMagnet } from './matter';
+import { upperAmmeter } from './tools';
 
 const lowerPoles = facts('magnet-l-poles', [
   {
@@ -270,6 +271,7 @@ export const MAGNET: Entry[] = [
   forGrades(lowerCoil, 4),
   forGrades(upperStrength, 5),
   forGrades(upperCompare, 5),
+  forGrades(upperAmmeter, 5, 6),
   forGrades(upperPole, 5, 6),
   forGrades(upperDevices, 6),
   forGrades(upperHeater, 6),

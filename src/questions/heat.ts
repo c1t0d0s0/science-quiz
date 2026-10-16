@@ -1,5 +1,6 @@
 import { facts, forGrades, numeric, pick, type Entry, type Gen } from './helpers';
 import { lowerExpand, lowerHeat, lowerState } from './matter';
+import { lowerLamp, lowerThermometer } from './tools';
 
 const lowerSun = facts('heat-l-sun', [
   {
@@ -174,6 +175,8 @@ export const HEAT: Entry[] = [
   forGrades(lowerExpand, 4),
   forGrades(lowerState, 4),
   forGrades(lowerHeat, 4),
+  forGrades(lowerThermometer, 3, 4),
+  forGrades(lowerLamp, 4),
   forGrades(upperCalorie, 5),
   forGrades(upperTransfer, 5, 6),
   forGrades(upperMix, 6),
