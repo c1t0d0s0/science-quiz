@@ -1,7 +1,7 @@
 import { shuffle } from '../core/rng';
 import { gasGraph, heatingFig, solubilityFig } from '../diagrams/graph';
 import { fig, circle, line, rect, tag, text, polygon } from '../diagrams/svg';
-import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, sample, type Entry, type Gen } from './helpers';
+import { choice, facts, fixed, forGrades, int, KANA, numeric, oneOf, pick, sample, type Entry, type Fact, type Gen } from './helpers';
 import { upperBalance, upperBurner, upperCylinder, upperDetector } from './tools';
 
 // ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
@@ -395,6 +395,90 @@ const upperSolubility: Gen = {
   },
 };
 
+const RECRYSTAL_FACTS: readonly Fact[] = [
+  {
+    q: '高い温度の水にとけるだけとかしたミョウバンの水よう液を冷やすと、つぶが出てきました。このように、とかしたものを、もう一度きまった形のつぶとしてとり出すことを何といいますか。',
+    a: '再結しょう',
+    wrong: ['中和', 'ろ過', 'じょう留'],
+    ex: '水よう液を冷やしたり、水をじょう発させたりして、とけていたものを結しょうとしてとり出すことを再結しょうといいます。',
+  },
+  {
+    q: 'ミョウバンの結しょうの形として、正しいものはどれですか。',
+    a: '正八面体（ピラミッドを2つ合わせた形）',
+    wrong: ['立方体（さいころの形）', '細長い針のような形', '決まった形はない'],
+    ex: 'ミョウバンの結しょうは正八面体、食塩の結しょうは立方体の形をしています。結しょうの形は、ものによって決まっています。',
+  },
+  {
+    q: '食塩の結しょうの形として、正しいものはどれですか。',
+    a: '立方体（さいころの形）',
+    wrong: ['正八面体（ピラミッドを2つ合わせた形）', '細長い針のような形', 'まるい玉の形'],
+    ex: '食塩の結しょうは立方体の形をしています。虫めがねで見ると、四角いつぶが見えます。',
+  },
+  {
+    q: 'ミョウバンの大きな結しょうをつくるには、どうすればよいですか。',
+    a: 'とけるだけとかした水よう液を、ゆっくり冷やす',
+    wrong: ['とけるだけとかした水よう液を、氷水で急に冷やす', '水よう液をはげしくかきまぜながら冷やす', '水よう液を加熱して、ふっとうさせつづける'],
+    ex: 'ゆっくり冷やすと、とけきれなくなったミョウバンが少しずつ結しょうにくっついて、大きな結しょうになります。急に冷やすと、小さな結しょうがたくさんできます。',
+  },
+  {
+    q: '少しだけ食塩がまじったしょう酸カリウムを、高い温度の水にとかしてから冷やしました。出てくるつぶについて正しいものはどれですか。',
+    a: 'ほとんどしょう酸カリウムだけが出てくる',
+    wrong: ['ほとんど食塩だけが出てくる', '食塩としょう酸カリウムが半分ずつ出てくる', '何も出てこない'],
+    ex: 'しょう酸カリウムは温度が下がるととける量が大きくへりますが、食塩はほとんど変わりません。少しだけの食塩はとけたままなので、しょう酸カリウムだけをとり出せます。再結しょうは、まじりもののないものをとり出すのに使われます。',
+  },
+  {
+    q: '冷やして出てきたミョウバンのつぶを、ろ過してとり出しました。ろ紙を通りぬけた液（ろ液）について正しいものはどれですか。',
+    a: 'ミョウバンがとけている',
+    wrong: ['ただの水で、何もとけていない', 'ミョウバンのつぶがまじっている', '食塩がとけている'],
+    ex: 'つぶが出てきたあとの液にも、その温度でとけるだけのミョウバンがとけています。ろ液の水をじょう発させると、ミョウバンがまた出てきます。',
+  },
+];
+
+const upperRecrystal: Gen = {
+  id: 'matter-u-recrystal',
+  make: (rng) => {
+    const s = pick(rng, SOLUBLE);
+    const svg = solubilityFig(s.name, s.values);
+    const graph = `図は、${s.name}が水100gにとける量と水の温度の関係を表したグラフです。`;
+    return pick(rng, [
+      () => {
+        const t = int(rng, 1, 3);
+        const water = pick(rng, [200, 300]);
+        const evap = pick(rng, [50, 100]);
+        const out = (s.values[t] * evap) / 100;
+        return numeric(rng, {
+          text: `${graph}${TEMPS[t]}℃の水${water}gに${s.name}をとけるだけとかしました。温度を${TEMPS[t]}℃に保ったまま、水を${evap}gじょう発させると、何gの${s.name}が出てきますか。`,
+          svg,
+          correct: out,
+          wrong: [s.values[t], (s.values[t] * water) / 100, (s.values[t] * (water - evap)) / 100, out * 2],
+          unit: 'g',
+          explanation: `温度が変わらないので、じょう発した水${evap}gにとけていた分が出てきます。水100gに${s.values[t]}gとけるので、${s.values[t]} × ${evap} ÷ 100 ＝ ${out}（g）です。`,
+        });
+      },
+      () => {
+        const hi = int(rng, 2, 3);
+        const lo = int(rng, 0, hi - 1);
+        const water = pick(rng, [200, 300]);
+        const evap = 100;
+        const before = (s.values[hi] * water) / 100;
+        const after = (s.values[lo] * (water - evap)) / 100;
+        return numeric(rng, {
+          text: `${graph}${TEMPS[hi]}℃の水${water}gに${s.name}をとけるだけとかしました。この水よう液を加熱して水を${evap}gじょう発させてから、${TEMPS[lo]}℃まで冷やしました。何gの${s.name}が出てきますか。`,
+          svg,
+          correct: before - after,
+          wrong: [((s.values[hi] - s.values[lo]) * water) / 100, ((s.values[hi] - s.values[lo]) * (water - evap)) / 100, before, before - after + s.values[lo]],
+          unit: 'g',
+          explanation: `はじめにとけていたのは ${s.values[hi]} × ${water} ÷ 100 ＝ ${before}g です。のこった水 ${water - evap}g に${TEMPS[lo]}℃でとけるのは ${s.values[lo]} × ${water - evap} ÷ 100 ＝ ${after}g なので、出てくるのは ${before} − ${after} ＝ ${before - after}（g）です。`,
+        });
+      },
+      () => {
+        const f = pick(rng, RECRYSTAL_FACTS);
+        return choice(rng, { text: f.q, correct: f.a, wrong: f.wrong, explanation: f.ex });
+      },
+    ])();
+  },
+};
+
 const upperDissolve: Gen = {
   id: 'matter-u-dissolve',
   make: (rng) =>
@@ -756,6 +840,7 @@ export const MATTER: Entry[] = [
   forGrades(upperConcentration, 5),
   forGrades(upperSolubility, 5),
   forGrades(upperDissolve, 5),
+  forGrades(upperRecrystal, 5, 6),
   forGrades(upperCylinder, 5),
   forGrades(upperBalance, 5),
   forGrades(upperSolute, 5, 6),
