@@ -296,6 +296,28 @@ describe('計算問題の検算 (地学・物理・熱)', () => {
     });
   });
 
+  it('電気の利用: プログラムの条件とくり返し、発光ダイオードの効率', () => {
+    each('bulbs-u-sensor', (text, correct) => {
+      if (text.includes('次のプログラム')) {
+        const lines = text.split('\n');
+        const rule = lines[1];
+        const scene = lines.find((l) => l.startsWith(`${correct}：`))!.slice(2);
+        const [a, b] = scene.split('、');
+        // 「かつ」の形では答えの場面が 2 つの条件にあてはまり、「または」の形ではどちらにもあてはまらない
+        if (rule.includes('かつ')) expect(rule).toContain(`もし「${a}」かつ「${b}」なら`);
+        else expect(rule.includes(`「${a}」`) || rule.includes(`「${b}」`), `${rule} ${scene}`).toBe(false);
+      } else if (text.includes('くり返す')) {
+        const [on, off, times] = numbers(text);
+        expect(value(correct)).toBe(text.includes('ついている時間') ? on * times : (on + off) * times);
+      }
+    });
+    each('bulbs-u-saving', (text, correct) => {
+      const n = numbers(text);
+      if (text.includes('何倍の時間')) expect(value(correct)).toBe(n[2] / n[1]);
+      else if (text.includes('何時間つけられますか')) expect(value(correct)).toBe(n[0] * n[2]);
+    });
+  });
+
   it('音: きょり = 速さ × 時間 (はね返るときは往復)', () => {
     each('light-u-sound', (text, correct) => {
       if (!text.includes('きょりは何m')) return;

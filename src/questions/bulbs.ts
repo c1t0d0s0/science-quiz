@@ -12,7 +12,7 @@ import {
   type Frac,
   type Wiring,
 } from '../diagrams/circuit';
-import { choice, facts, fixed, forGrades, KANA, oneOf, pick, sample, type Entry, type Gen } from './helpers';
+import { choice, facts, fixed, forGrades, KANA, numeric, oneOf, pick, sample, type Entry, type Fact, type Gen } from './helpers';
 import { lowerGalvano } from './tools';
 
 const one: Circuit = { cells: 1, cellMode: 's', bulbs: 1, bulbMode: 's' };
@@ -403,6 +403,147 @@ export const upperDevices = facts('bulbs-u-devices', [
   },
 ]);
 
+// ---------- 電気の利用: センサーとプログラム、電気の効率的な使い方 ----------
+
+/** センサーで調べることと、それを使う器具 */
+const SENSORS = [
+  { sensor: '明るさセンサー', use: 'まわりが暗くなると、自動で明かりがつく街灯' },
+  { sensor: '人感センサー', use: '人が近づくと、自動で明かりがつくろうかの照明' },
+  { sensor: '温度センサー', use: '部屋が設定した温度になると、自動で運転を弱めるエアコン' },
+  { sensor: 'しつ度センサー', use: '部屋の空気がかわくと、自動で運転を始める加しつ器' },
+];
+
+/**
+ * センサーを 2 つ使って器具を動かすプログラム。a・b は、それぞれのセンサーで調べる条件で、
+ * [器具を動かすとき, 動かさないとき] の順。場面は「a のどちらか、b のどちらか」で 4 つある。
+ */
+const PROGRAMS = [
+  { sensors: '人感センサーと明るさセンサー', act: '明かりをつける', stop: '明かりを消す', a: ['人がいる', '人がいない'], b: ['まわりが暗い', 'まわりが明るい'] },
+  { sensors: '人感センサーと温度センサー', act: '冷ぼうを運転する', stop: '冷ぼうを止める', a: ['人がいる', '人がいない'], b: ['室温が28℃以上', '室温が28℃より低い'] },
+  { sensors: 'しつ度センサーと雨センサー', act: 'ポンプで花だんに水をまく', stop: 'ポンプを止める', a: ['土がかわいている', '土がしめっている'], b: ['雨がふっていない', '雨がふっている'] },
+] as const;
+
+export const upperSensor: Gen = {
+  id: 'bulbs-u-sensor',
+  make: (rng) =>
+    pick(rng, [
+      () => {
+        const pg = pick(rng, PROGRAMS);
+        // 「かつ」で動かす形と、「または」で止める形がある。どちらでも、動くのは両方の条件がそろう場面だけ
+        const and = pick(rng, [true, false]);
+        const scenes = shuffle([0, 1, 2, 3], rng).map((n) => ({ a: n >> 1, b: n & 1 }));
+        const answer = scenes.findIndex((sc) => sc.a === 0 && sc.b === 0);
+        const scene = (sc: (typeof scenes)[number]) => `${pg.a[sc.a]}、${pg.b[sc.b]}`;
+        const rule = and
+          ? `もし「${pg.a[0]}」かつ「${pg.b[0]}」なら${pg.act}。そうでなければ${pg.stop}。`
+          : `もし「${pg.a[1]}」または「${pg.b[1]}」なら${pg.stop}。そうでなければ${pg.act}。`;
+        return fixed({
+          text: `${pg.sensors}を使って、次のプログラムをつくりました。\n「${rule}」\n次のア〜エの場面のうち、「${pg.act}」のはどれですか。\n${scenes.map((sc, i) => `${KANA[i]}：${scene(sc)}`).join('\n')}`,
+          choices: KANA.slice(0, 4),
+          correct: KANA[answer],
+          explanation: and
+            ? `「かつ」は、2つの条件が両方ともあてはまるときだけです。「${pg.a[0]}」と「${pg.b[0]}」の両方にあてはまるのは ${KANA[answer]} だけです。`
+            : `「または」は、どちらか1つでもあてはまれば${pg.stop}という意味です。「${pg.a[1]}」にも「${pg.b[1]}」にもあてはまらないのは ${KANA[answer]}（${scene(scenes[answer])}）だけなので、「${pg.act}」のは ${KANA[answer]} のときだけです。`,
+        });
+      },
+      () => {
+        const onSec = pick(rng, [2, 3, 4, 5]);
+        const offSec = pick(rng, [1, 2, 3]);
+        const times = pick(rng, [3, 4, 5, 6, 10]);
+        const total = (onSec + offSec) * times;
+        const askOn = pick(rng, [true, false]);
+        return numeric(rng, {
+          text: `ボタンをおすと、「発光ダイオードを${onSec}秒間つけて、${offSec}秒間消す」ことを${times}回くり返すプログラムをつくりました。ボタンをおしてからプログラムが終わるまでに、${askOn ? '発光ダイオードがついている時間は合わせて' : 'かかる時間は'}何秒ですか。`,
+          correct: askOn ? onSec * times : total,
+          wrong: askOn ? [total, onSec + times, offSec * times, onSec * (times - 1)] : [onSec * times, (onSec + offSec) * (times - 1), onSec + offSec + times, offSec * times],
+          unit: '秒',
+          explanation: askOn
+            ? `1回のくり返しで${onSec}秒ついているので、${times}回で ${onSec} × ${times} ＝ ${onSec * times}（秒）です。`
+            : `1回のくり返しは ${onSec} ＋ ${offSec} ＝ ${onSec + offSec}秒なので、${times}回で ${onSec + offSec} × ${times} ＝ ${total}（秒）です。`,
+        });
+      },
+      () => {
+        const s = pick(rng, SENSORS);
+        return choice(rng, {
+          text: `「${s.use}」には、おもにどのセンサーが使われていますか。`,
+          correct: s.sensor,
+          wrong: SENSORS.map((x) => x.sensor),
+          explanation: `${s.sensor}が、まわりのようすを調べて、その結果に合わせて電気の流れを自動で切りかえています。${SENSORS.map((x) => `${x.sensor}は「${x.use}」`).join('、')}などに使われています。`,
+        });
+      },
+      () =>
+        choice(rng, {
+          text: '電気の流れを、センサーとプログラムで自動で切りかえる利点として、もっともふさわしいものはどれですか。',
+          correct: '必要なときだけ電気を使うので、むだな電気を使わずにすむ',
+          wrong: ['電気をたくさん使うほど、明るさがいつも同じになる', '電気をつくる量がふえる', '電気が流れなくても、明かりがつくようになる'],
+          explanation: 'センサーでまわりのようすを調べ、プログラムで「必要なときだけ電気を流す」ようにすると、つけっぱなしのような、むだな電気の使い方をへらすことができます。',
+        }),
+    ])(),
+};
+
+const SAVING_FACTS: readonly Fact[] = [
+  {
+    q: '豆電球（白熱電球）が、発光ダイオードより多くの電気を使うのはなぜですか。',
+    a: '電気の多くが、光ではなく熱に変わってしまうから',
+    wrong: ['電気の多くが、音に変わってしまうから', '豆電球は電気をたくわえておくから', '豆電球には電流が流れにくいから'],
+    ex: '豆電球は、フィラメントが熱くなって光るので、電気の多くが熱に変わります。発光ダイオードは熱くなりにくく、電気を効率よく光に変えます。',
+  },
+  {
+    q: '発電・蓄電・電気の利用の流れとして、正しいものはどれですか。',
+    a: '光電池で電気をつくり、コンデンサーにためて、発光ダイオードで光に変える',
+    wrong: ['発光ダイオードで電気をつくり、光電池にためて、コンデンサーで光に変える', 'コンデンサーで電気をつくり、発光ダイオードにためて、光電池で光に変える', '豆電球で電気をつくり、モーターにためて、光電池で音に変える'],
+    ex: '光電池や手回し発電機で電気をつくり（発電）、コンデンサーや充電池にためて（蓄電）、発光ダイオードやモーターなどで光や運動に変えて使います（利用）。',
+  },
+  {
+    q: '電気を効率よく使うための工夫として、ふさわしくないものはどれですか。',
+    a: 'だれもいない部屋の明かりを、つけたままにしておく',
+    wrong: ['白熱電球を、発光ダイオードの電球にとりかえる', '人感センサーで、人がいるときだけ明かりがつくようにする', '使わない電気製品のプラグを、コンセントからぬいておく'],
+    ex: 'だれもいない部屋の明かりは、むだな電気です。発光ダイオードの電球やセンサーを使ったり、使わない電気製品のプラグをぬいて待機電力をへらしたりすると、電気を効率よく使えます。',
+  },
+  {
+    q: '電気製品を使っていなくても、コンセントにつないでいるだけで使われる電気を何といいますか。',
+    a: '待機電力',
+    wrong: ['発電', '蓄電', '静電気'],
+    ex: 'テレビなどは、使っていないときも、すぐに動けるように少しずつ電気を使っています。これを待機電力といいます。プラグをぬいたり、スイッチつきのタップを使ったりするとへらせます。',
+  },
+];
+
+export const upperSaving: Gen = {
+  id: 'bulbs-u-saving',
+  make: (rng) =>
+    pick(rng, [
+      () => {
+        const turns = pick(rng, [20, 30, 50]);
+        const bulb = pick(rng, [10, 12, 15, 20]);
+        const k = pick(rng, [4, 5, 6, 8]);
+        const led = bulb * k;
+        return numeric(rng, {
+          text: `手回し発電機のハンドルを同じ速さで${turns}回回して、コンデンサーに電気をためました。この電気で豆電球を光らせると${bulb}秒、発光ダイオードを光らせると${led}秒光りつづけました。発光ダイオードは、豆電球の何倍の時間光りましたか。`,
+          correct: k,
+          wrong: [k - 1, k + 1, k + 2, k * 2],
+          unit: '倍',
+          explanation: `${led} ÷ ${bulb} ＝ ${k}（倍）です。同じ量の電気で、発光ダイオードの方が長く光るのは、豆電球のように電気の多くを熱に変えてしまわず、効率よく光に変えているからです。`,
+        });
+      },
+      () => {
+        const k = pick(rng, [4, 5, 6]);
+        const hours = pick(rng, [2, 3, 4, 5]);
+        return numeric(rng, {
+          text: `ある発光ダイオードの電球は、同じ明るさの白熱電球にくらべて、使う電気の量が${k}分の1です。白熱電球を${hours}時間つけたときと同じ量の電気で、この発光ダイオードの電球は何時間つけられますか。`,
+          correct: hours * k,
+          wrong: [hours, hours + k, hours / k, hours * k * 2],
+          unit: '時間',
+          explanation: `使う電気の量が${k}分の1なので、同じ量の電気で${k}倍の時間つけられます。${hours} × ${k} ＝ ${hours * k}（時間）です。`,
+        });
+      },
+      () => {
+        const f = pick(rng, SAVING_FACTS);
+        return choice(rng, { text: f.q, correct: f.a, wrong: f.wrong, explanation: f.ex });
+      },
+    ])(),
+};
+
+
 /** ジェネレーターと、それを出す学年 */
 export const BULBS: Entry[] = [
   forGrades(lowerWiring, 3),
@@ -418,4 +559,6 @@ export const BULBS: Entry[] = [
   forGrades(upperLife, 5, 6),
   forGrades(upperCell, 6),
   forGrades(upperMixed, 6),
+  forGrades(upperSensor, 6),
+  forGrades(upperSaving, 6),
 ];
