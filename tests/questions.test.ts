@@ -284,6 +284,18 @@ describe('計算問題の検算 (地学・物理・熱)', () => {
     });
   });
 
+  it('海風・陸風: 昼は海から陸へ、夜は陸から海へ (上空は反対)', () => {
+    each('weather-u-breeze', (text, correct, alt) => {
+      const day = alt.includes('の昼に');
+      const seaWest = alt.includes('西がわが海');
+      const [from, to] = day ? ['海', '陸'] : ['陸', '海'];
+      if (text.includes('上空では')) expect(correct).toBe(`${to}から${from}へ動く`);
+      else if (text.includes('風向き')) expect(correct).toBe((from === '海') === seaWest ? '西' : '東');
+      else if (text.includes('何といいますか')) expect(correct).toBe(day ? '海風' : '陸風');
+      else expect(correct).toBe(`${from}から${to}へふく`);
+    });
+  });
+
   it('音: きょり = 速さ × 時間 (はね返るときは往復)', () => {
     each('light-u-sound', (text, correct) => {
       if (!text.includes('きょりは何m')) return;

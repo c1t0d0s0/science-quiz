@@ -1,5 +1,5 @@
-import { tempGraph } from '../diagrams/earth';
-import { choice, facts, fixed, forGrades, int, numeric, pick, type Entry, type Gen } from './helpers';
+import { coastFig, tempGraph } from '../diagrams/earth';
+import { choice, facts, fixed, forGrades, int, numeric, pick, type Entry, type Fact, type Gen } from './helpers';
 
 const lowerThermo = facts('weather-l-thermo', [
   {
@@ -321,6 +321,119 @@ const upperFront = facts('weather-u-front', [
   },
 ]);
 
+// ---------- 海風・陸風と季節風 ----------
+
+const DIRS = ['東', '西', '南', '北'] as const;
+
+const upperBreeze: Gen = {
+  id: 'weather-u-breeze',
+  make: (rng) => {
+    const seaWest = pick(rng, [true, false]);
+    const day = pick(rng, [true, false]);
+    const svg = coastFig(seaWest, day);
+    const name = day ? '海風' : '陸風';
+    const from = day ? '海' : '陸';
+    const to = day ? '陸' : '海';
+    const why = day
+      ? '昼は、陸の方が海よりあたたまりやすいので、陸の上の空気があたためられて上へ動きます。そこへ海の上の空気が流れこむので、海から陸へ風がふきます（海風）。'
+      : '夜は、陸の方が海より冷えやすいので、海の上の空気の方があたたかくなって上へ動きます。そこへ陸の上の空気が流れこむので、陸から海へ風がふきます（陸風）。';
+    const intro = `図は、晴れた日の${day ? '昼' : '夜'}の海岸のようすです。`;
+    return pick(rng, [
+      () =>
+        fixed({
+          text: `${intro}地面の近くでは、風はどのようにふきますか。`,
+          svg,
+          choices: ['海から陸へふく', '陸から海へふく', '上から下へふく', '風はまったくふかない'],
+          correct: `${from}から${to}へふく`,
+          explanation: why,
+        }),
+      () => {
+        // 風向きは、風がふいてくる方位でいう
+        const fromWest = (from === '海') === seaWest;
+        const correct = fromWest ? '西' : '東';
+        return fixed({
+          text: `${intro}地面の近くでふく風の風向きは、どれですか。風向きは、風がふいてくる方位で答えます。`,
+          svg,
+          choices: DIRS,
+          correct,
+          explanation: `${why}図では${from}が${correct}がわにあるので、風は${correct}からふいてきます。風向きは、風がふいてくる方位でいうので、${correct}の風です。`,
+        });
+      },
+      () =>
+        choice(rng, {
+          text: `${intro}このとき地面の近くでふく風を何といいますか。`,
+          svg,
+          correct: name,
+          wrong: ['海風', '陸風', '季節風', 'へん西風'],
+          explanation: `${why}海からふく風を海風、陸からふく風を陸風といいます。`,
+        }),
+      () =>
+        fixed({
+          text: `${intro}地面の近くとは反対に、上空では、空気はどのように動いていますか。`,
+          svg,
+          choices: ['海から陸へ動く', '陸から海へ動く', '上空でも、地面の近くと同じ向きに動く', 'まったく動かない'],
+          correct: `${to}から${from}へ動く`,
+          explanation: `${why}上へ動いた空気は、上空で${to}から${from}の方へ流れ、${from}の上で下りてきます。このように、空気は大きく回っています。`,
+        }),
+    ])();
+  },
+};
+
+const MONSOON_FACTS: readonly Fact[] = [
+  {
+    q: '季節風がふくしくみは、何と同じしくみだと考えられますか。',
+    a: '海風・陸風',
+    wrong: ['台風', '竜巻', 'へん西風'],
+    ex: '海風・陸風は、1日の中で陸と海のあたたまり方・冷え方がちがうことでふきます。季節風は、同じことが、大陸と海の間で1年を通して起こるためにふく風です。',
+  },
+  {
+    q: '冬の日本で北西の季節風がふくのは、冬の大陸と太平洋がどうなっているからですか。',
+    a: '大陸の方が冷えて、大陸の上の気圧が高くなっているから',
+    wrong: ['大陸の方があたたまって、大陸の上の気圧が低くなっているから', '太平洋の方が冷えて、太平洋の上の気圧が高くなっているから', '大陸と太平洋の温度が同じになっているから'],
+    ex: '冬は、大陸の方が冷えやすく、冷たく重い空気がたまって高気圧ができます。風は気圧の高い方から低い方へふくので、大陸から太平洋へ北西の季節風がふきます。',
+  },
+  {
+    q: '夏の南東の季節風は、日本にどんな天気をもたらしますか。',
+    a: '太平洋からのしめった空気で、むし暑い日が多くなる',
+    wrong: ['大陸からのかんそうした空気で、すずしい日が多くなる', '日本海がわに大雪をふらせる', '1年でいちばん雨が少なくなる'],
+    ex: '夏の季節風は、太平洋の上を通ってくるので、あたたかくしめっています。そのため、日本の夏はむし暑くなります。',
+  },
+  {
+    q: '冬の北西の季節風は、日本海の上を通るときに、どのように変わりますか。',
+    a: '日本海から水蒸気をふくんで、しめった空気になる',
+    wrong: ['日本海で冷やされて、かんそうした空気になる', '日本海の上で、向きが南東に変わる', '日本海の上で、風がやんでしまう'],
+    ex: '冷たくかんそうした大陸の空気は、比かく的あたたかい日本海の上で水蒸気をふくみます。この空気が山にぶつかって雲をつくり、日本海がわに雪をふらせます。',
+  },
+  {
+    q: '冬の北西の季節風が山をこえて、太平洋がわにふき下りてくるとき、どんな風になっていますか。',
+    a: '冷たくかんそうした風',
+    wrong: ['あたたかくしめった風', '冷たくしめった風', 'あたたかく、雨をふくんだ風'],
+    ex: '日本海がわで雪をふらせた空気は、水蒸気を失ってかんそうしています。そのため太平洋がわでは、冷たくかんそうした風がふき、晴れの日が多くなります。',
+  },
+];
+
+const upperMonsoon: Gen = {
+  id: 'weather-u-monsoon',
+  make: (rng) =>
+    pick(rng, [
+      () => {
+        const summer = pick(rng, [true, false]);
+        return fixed({
+          text: `日本の${summer ? '夏' : '冬'}にふく季節風の風向きとして、もっとも多いものはどれですか。`,
+          choices: ['北東', '南東', '南西', '北西'],
+          correct: summer ? '南東' : '北西',
+          explanation: summer
+            ? '夏は、大陸の方が海（太平洋）よりあたたまりやすく、大陸の上の空気が上へ動きます。そのため、太平洋から大陸に向かって、南東の季節風がふきます。'
+            : '冬は、大陸の方が海（太平洋）より冷えやすく、大陸の上に冷たく重い空気がたまります（高気圧）。そのため、大陸から太平洋に向かって、北西の季節風がふきます。',
+        });
+      },
+      () => {
+        const f = pick(rng, MONSOON_FACTS);
+        return choice(rng, { text: f.q, correct: f.a, wrong: f.wrong, explanation: f.ex });
+      },
+    ])(),
+};
+
 /** ジェネレーターと、それを出す学年 */
 export const WEATHER: Entry[] = [
   forGrades(lowerThermo, 3),
@@ -329,6 +442,8 @@ export const WEATHER: Entry[] = [
   forGrades(lowerBox, 4),
   forGrades(upperChange, 5, 6),
   forGrades(upperTyphoon, 5),
+  forGrades(upperBreeze, 5, 6),
+  forGrades(upperMonsoon, 5, 6),
   forGrades(upperHumidity, 6),
   forGrades(upperFront, 6),
 ];
