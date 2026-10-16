@@ -37,7 +37,7 @@ npm run preview  # dist/ の中身を手元で見る
 
 ## スタンプ・ポイント・柴犬カード
 
-[Wordlynx](../wordlynx/) のスタンプカードとヤマネコカードと同じ仕組みです。キャラクターは柴犬です。
+問題をとくとスタンプとポイントがたまり、ポイントで柴犬カードと交換できます。
 
 | もらえるとき | ポイント |
 |---|---|
@@ -49,7 +49,7 @@ npm run preview  # dist/ の中身を手元で見る
 - **スタンプ**は 1 日 1 個。どれかの学年の 10 問をとき終えた日に押されます (いくつの学年をといても 1 個)
 - スタンプもポイントも、保存してある「とき終えた日と正解数」から毎回計算します (`src/core/rewards.ts`)。合計を別に保存しないので、ずれたり二重にもらったりしません。
   この機能ができる前にとき終えていた日も、そのままスタンプとポイントになります
-- **柴犬カード**は 20 種類・合計 28,420pt (`src/data/cards.ts`)。値段のならびはヤマネコカードと同じです。まだ持っていないカードは裏向きで、値段だけが見えます
+- **柴犬カード**は 20 種類・合計 28,420pt (`src/data/cards.ts`)。まだ持っていないカードは裏向きで、値段だけが見えます
 - 柴犬の絵とカードの絵柄は `src/ui/shiba.ts` で SVG としてかいています。開発サーバーの `cards.html` で、全部のデザインを一覧できます (ビルドには入りません)
 - ログイン中は、持っているカードも Firestore に保存されます (`inventory`)。スタンプは `activeDays` に入ります
 
@@ -62,7 +62,6 @@ GitHub Pages に公開するときは、リポジトリの変数 `GTM_ID` に ID
 
 ## ログインと記録の保存 (Firebase)
 
-[Wordlynx](../wordlynx/) と同じ仕組み・同じ Firebase プロジェクトを使います。
 Google でログインした人の記録は Firestore に保存し、ログインしない人は今までどおりそのブラウザの localStorage だけに保存します。
 **Firebase の設定を入れていないビルドでは、ログインの入り口は出ず、Firebase のコードも読みこまれません。**
 
@@ -84,8 +83,8 @@ Google でログインした人の記録は Firestore に保存し、ログイ�
 
 ### Firestore の形
 
-Wordlynx と同じ形 (小学生向けの学習アプリで共通) で、`appId` だけがちがいます。Wordlynx の記録とはまざりません。
-ルールも Wordlynx と同じ (`firestore.rules`。読み書きできるのはログインしている本人だけ) なので、**ルールを入れ直す必要はありません。**
+記録は `users/{uid}/apps/science-quiz` の下に入ります。同じ Firebase プロジェクトをほかのアプリと共有しても、記録はまざりません。
+ルールは `firestore.rules` にあります (読み書きできるのはログインしている本人だけ)。
 
 ```
 users/{uid}                                        その人の情報 (全アプリ共通)。名前・メールアドレスは保存しない
@@ -102,14 +101,14 @@ users/{uid}/apps/science-quiz/progress/{日付:レベル}  その日の途中経
 
 ### 設定
 
-Wordlynx と同じ 4 つの値を入れます。4 つのうち一部だけを入れると、ビルドがエラーになります。
+次の 4 つの値を入れます。4 つのうち一部だけを入れると、ビルドがエラーになります。
 
 - 手元: `config.js` に `FIREBASE_API_KEY` `FIREBASE_AUTH_DOMAIN` `FIREBASE_PROJECT_ID` `FIREBASE_APP_ID` を書く (書き方は `GTM_ID` と同じ)
 - GitHub Pages: リポジトリの Settings → Secrets and variables → Actions → Variables に、同じ 4 つの名前で登録する
-- 公開先のドメインが Wordlynx とちがうときは、Firebase コンソールの Authentication → 設定 → 承認済みドメイン に足す
+- 公開先のドメインを、Firebase コンソールの Authentication → 設定 → 承認済みドメイン に足しておく
 
 ログインに失敗すると、ボタンの下に Firebase のエラーの名前 (`auth/unauthorized-domain` など) が出ます。
-原因と直し方は Wordlynx の README の「ログインできないとき」と同じです。
+`auth/unauthorized-domain` のときは、公開先のドメインが承認済みドメインに入っているかをたしかめてください。
 
 ### エミュレーターで動かす (開発用)
 
