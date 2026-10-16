@@ -1,4 +1,4 @@
-import { arrow, circle, fig, line, path, pointer, polyline, rect, tag, text } from './svg';
+import { arrow, circle, fig, line, path, pointer, polygon, polyline, rect, tag, text } from './svg';
 
 /**
  * 1 日の気温の変化のグラフ。values は 午前6時から2時間ごと (6・8・…・18時) の気温。
@@ -160,5 +160,42 @@ export function hazardFig(riverLeft: boolean, labels: Record<FloodZone, string>,
     }),
     ...legend,
     text(20, 194, '浸水の深さ', { anchor: 'start', cls: 'tiny' }),
+  );
+}
+
+/** 海岸を横から見た図。seaWest で海が西 (左) か東 (右) か、day で昼 (太陽) か夜 (月) かを決める */
+export function coastFig(seaWest: boolean, day: boolean): string {
+  const width = 340;
+  const shore = 170;
+  const sea: [number, number] = seaWest ? [14, shore] : [shore, width - 14];
+  const land: [number, number] = seaWest ? [shore, width - 14] : [14, shore];
+  // 陸は海側から少しずつ高くなる
+  const landTop = (x: number) => 128 - (Math.abs(x - shore) / (land[1] - land[0])) * 18;
+  const waves = Array.from({ length: 6 }, (_, i) => {
+    const x = sea[0] + 8 + i * 25;
+    return path(`M${x} 138q6 -5 12 0`, 'ln thin');
+  }).join('');
+  const skyX = seaWest ? width - 50 : 50;
+  const sky = day
+    ? circle(skyX, 40, 16, 'lit') +
+      Array.from({ length: 8 }, (_, i) => {
+        const a = (i * Math.PI) / 4;
+        return line(skyX + 21 * Math.cos(a), 40 + 21 * Math.sin(a), skyX + 28 * Math.cos(a), 40 + 28 * Math.sin(a), 'ln thin');
+      }).join('')
+    : path(`M${skyX + 4} 24a16 16 0 1 0 0 32a12 16 0 1 1 0 -32Z`, 'lit');
+  const [a, b] = land;
+  return fig(
+    width,
+    200,
+    `晴れた日の${day ? '昼' : '夜'}に、海岸を横から見た図。図の左が西、右が東で、${seaWest ? '西がわが海、東がわが陸' : '西がわが陸、東がわが海'}になっている。空には${day ? '太陽' : '月'}が出ている。`,
+    sky,
+    rect(sea[0], 134, sea[1] - sea[0], 42, 'water'),
+    waves,
+    polygon([[a, landTop(a)], [b, landTop(b)], [b, 176], [a, 176]], 'fill-soft'),
+    line(14, 176, width - 14, 176),
+    text((sea[0] + sea[1]) / 2, 162, '海', { cls: 'small' }),
+    text((a + b) / 2, 160, '陸', { cls: 'small' }),
+    text(20, 194, '西', { anchor: 'start', cls: 'small' }),
+    text(width - 20, 194, '東', { anchor: 'end', cls: 'small' }),
   );
 }
