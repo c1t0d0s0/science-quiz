@@ -6,6 +6,8 @@ import { assertValid } from './helpers';
 
 const START = '2026-10-01';
 const DAYS = 400;
+/** 30 日以内に同じ問題が出る割合の上限 */
+const MAX_REPEAT: Record<Level, number> = { g3: 0.65, g4: 0.55, g5: 0.2, g6: 0.1 };
 
 describe('今日の 10 問', () => {
   it('どの日も 10 問で、分野が重ならない', () => {
@@ -55,6 +57,38 @@ describe('今日の 10 問', () => {
       for (const level of LEVELS) expect(key(date, level)).not.toBe(key(addDays(date, 1), level));
       // どの学年どうしも、ちがう問題になる
       expect(new Set(LEVELS.map((level) => key(date, level))).size).toBe(LEVELS.length);
+    }
+  });
+
+  it('同じ分野で、同じジェネレーターがつづけて出ない', () => {
+    for (const level of LEVELS) {
+      const last = new Map<string, string>();
+      for (let i = 0; i < DAYS; i++) {
+        const date = addDays(START, i);
+        for (const q of dailyQuestions(date, level)) {
+          expect(last.get(q.category), `${date} ${level} ${q.category}`).not.toBe(q.id);
+          last.set(q.category, q.id);
+        }
+      }
+    }
+  });
+
+  it('30 日以内に、まったく同じ問題はあまり出ない', () => {
+    for (const level of LEVELS) {
+      const seen = new Map<string, number>();
+      let repeated = 0;
+      let total = 0;
+      for (let i = 0; i < 120; i++) {
+        for (const q of dailyQuestions(addDays(START, i), level)) {
+          const key = `${q.text}|${q.svg ?? ''}|${q.choices[q.answer]}`;
+          if (i >= 30) {
+            total++;
+            if ((seen.get(key) ?? -Infinity) >= i - 30) repeated++;
+          }
+          seen.set(key, i);
+        }
+      }
+      expect(repeated / total, level).toBeLessThanOrEqual(MAX_REPEAT[level]);
     }
   });
 
