@@ -7,7 +7,7 @@ import { assertValid } from './helpers';
 const START = '2026-10-01';
 const DAYS = 400;
 /** 30 日以内に同じ問題が出る割合の上限 */
-const MAX_REPEAT: Record<Level, number> = { g3: 0.65, g4: 0.55, g5: 0.2, g6: 0.1 };
+const MAX_REPEAT: Record<Level, number> = { g3: 0.12, g4: 0.11, g5: 0.1, g6: 0.08 };
 
 describe('今日の 10 問', () => {
   it('どの日も 10 問で、分野が重ならない', () => {

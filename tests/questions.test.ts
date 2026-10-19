@@ -24,8 +24,8 @@ function each(id: string, check: (text: string, correct: string, alt: string) =>
 const numbers = (s: string) => (s.match(/\d+(\.\d+)?/g) ?? []).map(Number);
 
 describe('問題のジェネレーター', () => {
-  it('どの学年にも、分野ごとに 2 つ以上ある (同じ分野が回ってきたとき、ちがう問題を出せる)', () => {
-    for (const level of LEVELS) for (const c of CATEGORIES) expect(GENERATORS[level][c].length, `${level} ${c}`).toBeGreaterThanOrEqual(2);
+  it('どの学年にも、分野ごとに 4 つ以上ある (同じ分野が回ってきたとき、ちがう問題を出せる)', () => {
+    for (const level of LEVELS) for (const c of CATEGORIES) expect(GENERATORS[level][c].length, `${level} ${c}`).toBeGreaterThanOrEqual(4);
     expect(new Set(ALL.map((g) => g.id)).size).toBe(ALL.length);
   });
 
@@ -427,6 +427,62 @@ describe('計算問題の検算 (地学・物理・熱)', () => {
         if (strongest) expect(p.turns <= best.turns && p.cells <= best.cells).toBe(true);
         else expect(p.turns >= best.turns && p.cells >= best.cells).toBe(true);
       }
+    });
+  });
+
+  it('ふ力: 空気中と水中の目もりの差が、水から受ける力', () => {
+    each('spring-l-buoy', (text, correct) => {
+      const [air, other] = numbers(text);
+      expect(numbers(correct)[0]).toBe(air - other);
+    });
+  });
+
+  it('ばねの表: 2 つの重さの長さから、もとの長さと 10g あたりののびを出す', () => {
+    each('spring-u-table', (text, correct) => {
+      const [g1, a1, b1, g2, a2, b2, g] = numbers(text);
+      const pa = (a2 - a1) / (g2 - g1);
+      const pb = (b2 - b1) / (g2 - g1);
+      const a0 = a1 - pa * g1;
+      const answer = numbers(correct)[0];
+      if (text.includes('何もつるさない')) expect(answer).toBeCloseTo(a0);
+      else if (text.includes('同じになる')) expect(a0 + pa * answer).toBeCloseTo(b1 - pb * g1 + pb * answer);
+      else expect(answer).toBeCloseTo(a0 + pa * g);
+    });
+  });
+
+  it('ゴムの車・しゃ面: のばす長さ (高さ) と進むきょりは比例する', () => {
+    each('motion-l-rubberdist', (text, correct) => {
+      const [step, per, , , x] = numbers(text);
+      const answer = numbers(correct)[0];
+      if (text.includes('何m進みますか')) expect(answer).toBe((x / step) * per);
+      else expect(answer).toBe((x / per) * step);
+    });
+    each('motion-l-slopetable', (text, correct) => {
+      const [h, d, , , x] = numbers(text);
+      expect(numbers(correct)[0]).toBe((x / h) * d);
+    });
+  });
+});
+
+describe('計算問題の検算 (生物)', () => {
+  it('脈はく: はかった秒数の回数を、1 分間 (60 秒) の回数にする', () => {
+    each('body-l-pulsecount', (text, correct) => {
+      const answer = numbers(correct)[0];
+      if (text.includes('走る前')) {
+        const [, before, sec, count] = numbers(text);
+        expect(answer).toBe((count * 60) / sec - before);
+      } else {
+        const [sec, count] = numbers(text);
+        expect(answer).toBe((count * 60) / sec);
+      }
+    });
+  });
+
+  it('呼吸: とり入れる酸素は、すう空気とはく息の酸素の差', () => {
+    each('body-u-oxygen', (text, correct) => {
+      const [inside, outside, , ml, , per] = numbers(text);
+      const once = (ml * (inside - outside)) / 100;
+      expect(numbers(correct)[0]).toBeCloseTo(text.includes('1分間に') ? once * per : once);
     });
   });
 });
