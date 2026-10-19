@@ -7,7 +7,7 @@ import { upperBalance, upperBurner, upperCylinder, upperDetector } from './tools
 // ---------- 3・4 年むけ (どの学年に出すかは、ファイルの最後の一覧で決める) ----------
 
 /** 同じ体積で重い順 */
-const HEAVY = ['銅', '鉄', 'アルミニウム', '木', '発ぽうスチロール'];
+const HEAVY = ['金', '銀', '銅', '鉄', 'アルミニウム', '木', '発ぽうスチロール'];
 
 const lowerWeight: Gen = {
   id: 'matter-l-weight',
@@ -45,7 +45,7 @@ const lowerMaterial: Gen = {
     const sorted = HEAVY.filter((m) => items.includes(m));
     const correct = heaviest ? sorted[0] : sorted[3];
     return choice(rng, {
-      text: `同じ大きさ（体積）の、次の4つのもののうち、いちばん${heaviest ? '重い' : '軽い'}ものはどれですか。`,
+      text: `同じ大きさ（体積）の${shuffle(items, rng).join('・')}があります。この4つのうち、いちばん${heaviest ? '重い' : '軽い'}ものはどれですか。`,
       correct,
       wrong: items.filter((m) => m !== correct),
       explanation: `同じ体積でも、ものの種類によって重さはちがいます。重い順にならべると、${sorted.join(' → ')} です。`,
@@ -162,6 +162,18 @@ const lowerAir = facts('matter-l-air', [
     wrong: ['水だけ', '空気と水の両方', 'どちらも小さくならない'],
     ex: '空気はおしちぢめられますが、水はおしちぢめられません。だから、体積が小さくなるのは空気だけです。',
   },
+  {
+    q: 'ボールに空気をたくさん入れて、ぱんぱんにふくらませました。さわると、どう感じますか。',
+    a: 'おし返す力が強く、かたく感じる',
+    wrong: ['やわらかく、へこみやすく感じる', 'とても冷たく感じる', '重さがなくなったように感じる'],
+    ex: 'とじこめた空気は、おされるとおし返そうとします。たくさんつめるほど、おし返す力が強くなります。',
+  },
+  {
+    q: '自転車のタイヤに空気を入れるのは、とじこめた空気のどんな性質を利用していますか。',
+    a: 'おされるとちぢんで、おし返そうとする性質',
+    wrong: ['あたためると、ちぢむ性質', '水にとける性質', 'おしても体積が変わらない性質'],
+    ex: 'タイヤの中にとじこめた空気は、おされるとちぢみ、おし返そうとします。この力で、でこぼこの道でもしょうげきをやわらげます。',
+  },
 ]);
 
 export const lowerExpand = facts('matter-l-expand', [
@@ -200,6 +212,12 @@ export const lowerExpand = facts('matter-l-expand', [
     a: '少し上がる',
     wrong: ['少し下がる', '変わらない', '大きく下がる'],
     ex: '水もあたためると体積が大きくなるので、水面は少し上がります。ただし、空気にくらべると変わり方は小さいです。',
+  },
+  {
+    q: '夏の暑い日に、電線がたるんで見えるのはなぜですか。',
+    a: '金属の電線があたためられて、のびるから',
+    wrong: ['電線が重くなるから', '電線に水がたまるから', '電線が冷やされて、ちぢむから'],
+    ex: '金属は、あたためられると体積がふえ、冷やされるとへります。夏は電線がのびてたるみ、冬はちぢんでぴんとはります。',
   },
 ]);
 
@@ -764,6 +782,18 @@ const upperMetal = facts('matter-u-metal', [
     wrong: ['電気をよく通す', '熱をよく伝える', 'みがくと光る（金属こうたくがある）', 'たたくとうすく広がる'],
     ex: '金属に共通する性質は、電気をよく通す、熱をよく伝える、みがくと光る、たたくと広がり引っぱるとのびる、です。じ石につくのは鉄など一部の金属だけです。',
   },
+  {
+    q: 'アルミニウムにうすい塩酸を加えたときに発生する気体は何ですか。',
+    a: '水素',
+    wrong: ['酸素', '二酸化炭素', 'ちっ素'],
+    ex: 'アルミニウムや鉄などの金属にうすい塩酸を加えると、あわを出してとけ、水素が発生します。水素は、火を近づけるとポンと音を立てて燃えます。',
+  },
+  {
+    q: 'うすい塩酸に鉄をとかした液を、加熱して水をじょう発させました。残ったものについて正しいものはどれですか。',
+    a: '黄色っぽい固体で、もとの鉄とは別のもの',
+    wrong: ['銀色の、もとの鉄', '何も残らない', 'とう明な液体'],
+    ex: '塩酸にとけた鉄は、別のものに変わります。水をじょう発させると黄色っぽい固体が残り、この固体はじ石につかず、塩酸に入れてもあわを出さずにとけます。',
+  },
 ]);
 
 const upperGasGraph: Gen = {
@@ -831,12 +861,72 @@ const upperGasGraph: Gen = {
   },
 };
 
+const lowerScale: Gen = {
+  id: 'matter-l-scale',
+  make: (rng) =>
+    pick(rng, [
+      () => {
+        // 同じ体積なら、HEAVY の前にあるものほど重い
+        const [a, b] = sample(rng, HEAVY, 2);
+        const heavier = HEAVY.indexOf(a) < HEAVY.indexOf(b) ? '左' : '右';
+        return fixed({
+          text: `同じ大きさ（体積）の${a}と${b}を用意し、てんびんの左の皿に${a}、右の皿に${b}をのせました。てんびんはどうなりますか。`,
+          choices: ['左が下がる', '右が下がる', 'つり合う', 'これだけではわからない'],
+          correct: `${heavier}が下がる`,
+          explanation: `同じ体積でも、ものの種類によって重さがちがいます。${heavier === '左' ? a : b}の方が重いので、${heavier}の皿が下がります。重い順にならべると、${HEAVY.join(' → ')} です。`,
+        });
+      },
+      () => {
+        const dish = pick(rng, [20, 30, 40, 50]);
+        const n = pick(rng, [2, 3, 4, 5]);
+        const one = pick(rng, [20, 30, 40, 50, 60]);
+        const total = dish + one * n;
+        const thing = pick(rng, ['同じ重さのビー玉', '同じ重さの鉄の玉', '同じ重さのねん土の玉']);
+        return numeric(rng, {
+          text: `重さ${dish}gの入れ物に、${thing}を${n}個入れてはかると、全体の重さは${total}gでした。玉1個の重さは何gですか。`,
+          correct: one,
+          wrong: [total / n, one * n, (total - dish) / (n + 1), one + 10, one - 10].filter((v) => Number.isInteger(v)),
+          unit: 'g',
+          explanation: `玉${n}個の重さは、全体から入れ物の重さをひいて ${total} − ${dish} ＝ ${one * n}g です。1個は ${one * n} ÷ ${n} ＝ ${one}（g）です。`,
+        });
+      },
+    ])(),
+};
+
+const lowerAirPress: Gen = {
+  id: 'matter-l-airpress',
+  make: (rng) => {
+    const before = pick(rng, [30, 40, 50, 60]);
+    const after = before - pick(rng, [10, 15, 20]);
+    return pick(rng, [
+      () =>
+        numeric(rng, {
+          text: `注しゃ器に空気を${before}mLとじこめて、ピストンをおすと、空気の体積は${after}mLになりました。空気の体積は何mL小さくなりましたか。`,
+          correct: before - after,
+          wrong: [after, before, before + after, before - after + 5, before - after - 5],
+          unit: 'mL',
+          explanation: `${before} − ${after} ＝ ${before - after}（mL）です。とじこめた空気はおすとちぢんで、体積が小さくなります。ちぢむほど、おし返す力（手ごたえ）は大きくなります。`,
+        }),
+      () =>
+        numeric(rng, {
+          text: `注しゃ器に水を${before}mLとじこめて、ピストンを強くおしました。このとき、水の体積は何mLですか。`,
+          correct: before,
+          wrong: [after, before / 2, before - 5, before - 10, before + 10],
+          unit: 'mL',
+          explanation: `とじこめた空気はおすとちぢみますが、とじこめた水はおしてもちぢみません。水の体積は${before}mLのままです。`,
+        }),
+    ])();
+  },
+};
+
 /** ジェネレーターと、それを出す学年 */
 export const MATTER: Entry[] = [
   forGrades(lowerWeight, 3),
   forGrades(lowerVolume, 3),
   forGrades(lowerMaterial, 3, 4),
+  forGrades(lowerScale, 3, 4),
   forGrades(lowerAir, 4),
+  forGrades(lowerAirPress, 4),
   forGrades(upperConcentration, 5),
   forGrades(upperSolubility, 5),
   forGrades(upperDissolve, 5),
