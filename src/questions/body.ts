@@ -1,7 +1,7 @@
 import { shuffle } from '../core/rng';
 import { eyeFig } from '../diagrams/anatomy';
 import { lowerBones, upperBirth, upperBreath, upperDigestion, upperHeart } from './animals';
-import { choice, facts, fixed, forGrades, KANA, oneOf, pick, type Entry, type Gen } from './helpers';
+import { choice, facts, fixed, fmt, forGrades, int, KANA, numeric, oneOf, pick, type Entry, type Gen } from './helpers';
 
 const SENSES = [
   { what: '明るさや色、形', where: '目' },
@@ -15,12 +15,10 @@ const lowerSenses: Gen = {
   id: 'body-l-senses',
   make: (rng) => {
     const s = pick(rng, SENSES);
-    return choice(rng, {
-      text: `「${s.what}」を感じとるのは、からだのどこですか。`,
-      correct: s.where,
-      wrong: SENSES.map((x) => x.where),
-      explanation: `${s.what}は${s.where}で感じとります。目・耳・鼻・した・皮ふで感じたことは、脳に伝わります。`,
-    });
+    const explanation = `${s.what}は${s.where}で感じとります。目・耳・鼻・した・皮ふで感じたことは、脳に伝わります。`;
+    return rng() < 0.5
+      ? choice(rng, { text: `「${s.what}」を感じとるのは、からだのどこですか。`, correct: s.where, wrong: SENSES.map((x) => x.where), explanation })
+      : choice(rng, { text: `からだのうち、「${s.where}」で感じとるものはどれですか。`, correct: s.what, wrong: SENSES.map((x) => x.what), explanation });
   },
 };
 
@@ -55,6 +53,18 @@ const lowerPulse = facts('body-l-pulse', [
     wrong: ['へこむ', '変わらない', 'かたくなる'],
     ex: '息をすうと、むねの中にある肺に空気が入るので、むねがふくらみます。はくと、もとにもどります。',
   },
+  {
+    q: 'からだの中で、血液を全身に送り出すポンプのはたらきをしているものはどれですか。',
+    a: '心臓',
+    wrong: ['肺', '胃', '脳'],
+    ex: '心臓は、ちぢんだりゆるんだりして、血液を全身に送り出しています。手首で感じる脈はくは、この動きが血管を伝わったものです。',
+  },
+  {
+    q: '鼻や口からすいこんだ空気は、からだの中のどこに入りますか。',
+    a: '肺',
+    wrong: ['胃', '心臓', '腸'],
+    ex: 'すいこんだ空気は、気管を通って肺に入ります。肺で、空気中の酸素が血液にとり入れられます。',
+  },
 ]);
 
 const lowerJoints = facts('body-l-joints', [
@@ -87,6 +97,18 @@ const lowerJoints = facts('body-l-joints', [
     a: '骨・筋肉・関節',
     wrong: ['骨だけ', '筋肉だけ', 'どれもない'],
     ex: 'ほかの動物にも骨・筋肉・関節があり、ヒトと同じしくみでからだを動かしています。',
+  },
+  {
+    q: 'ひじやひざで、からだを曲げることができるのは、そこに何があるからですか。',
+    a: '関節',
+    wrong: ['けん', 'つめ', '血管'],
+    ex: '骨と骨のつなぎ目を関節といいます。関節のあるところで、からだを曲げることができます。',
+  },
+  {
+    q: 'おとなのからだには、骨がおよそ何本ありますか。',
+    a: '約200本',
+    wrong: ['約20本', '約50本', '約2000本'],
+    ex: 'おとなのからだには、約200本の骨があります。大きさや形は、場所によっていろいろです。',
   },
 ]);
 
@@ -186,10 +208,100 @@ const upperNerve: Gen = {
     ])(),
 };
 
+const lowerPulseCount: Gen = {
+  id: 'body-l-pulsecount',
+  make: (rng) => {
+    const sec = pick(rng, [10, 15, 20, 30]);
+    const k = 60 / sec;
+    const before = int(rng, 70, 90);
+    // 走ったあとは、はかった回数から 1 分間の数を出す (割り切れるように)
+    const afterCount = Math.round(before / k) + int(rng, 3, 8);
+    const after = afterCount * k;
+    return pick(rng, [
+      () => {
+        const count = Math.round(before / k);
+        return numeric(rng, {
+          text: `手首に指を当てて、${sec}秒間に脈はくが何回あるかを数えると、${count}回でした。この人の脈はくは、1分間に何回と考えられますか。`,
+          correct: count * k,
+          wrong: [count, count * (k + 1), count * (k - 1) || count * 2, count + 60, count * 10],
+          unit: '回',
+          explanation: `1分（60秒）は${sec}秒の ${60} ÷ ${sec} ＝ ${k}倍 です。1分間の脈はくは、${count} × ${k} ＝ ${count * k}（回）と考えられます。`,
+        });
+      },
+      () =>
+        numeric(rng, {
+          text: `走る前の脈はくは1分間に${before}回でした。その場で走ったあと、すぐに${sec}秒間の脈はくを数えると、${afterCount}回でした。走ったあとの1分間の脈はくは、走る前より何回ふえましたか。`,
+          correct: after - before,
+          wrong: [after, afterCount, after - before + k, after - before - k, after - before + 10].filter((n) => n > 0),
+          unit: '回',
+          explanation: `走ったあとの1分間の脈はくは、${afterCount} × ${k} ＝ ${after}回です。走る前より ${after} − ${before} ＝ ${after - before}（回）ふえました。運動すると、からだがたくさんの酸素を必要とするので、心臓が速く動きます。`,
+        }),
+    ])();
+  },
+};
+
+const lowerBreathCount: Gen = {
+  id: 'body-l-breathcount',
+  make: (rng) => {
+    const per = pick(rng, [12, 15, 16, 18, 20]); // 1 分間の呼吸の数
+    const ml = pick(rng, [400, 500, 600]); // 1 回にすう空気 (mL)
+    return pick(rng, [
+      () =>
+        numeric(rng, {
+          text: `じっとしているときに、15秒間に何回息をすうかを数えると、${per / 4}回でした。1分間では、何回息をすうと考えられますか。`,
+          correct: per,
+          wrong: [per / 4, per * 2, per / 2, per + 4, per + 15],
+          unit: '回',
+          explanation: `1分（60秒）は15秒の4倍なので、${per / 4} × 4 ＝ ${per}（回）と考えられます。`,
+        }),
+      () =>
+        numeric(rng, {
+          text: `ある人は、1回の呼吸で${ml}mLの空気をすいこみ、1分間に${per}回呼吸します。この人が1分間にすいこむ空気は何mLですか。`,
+          correct: ml * per,
+          wrong: [ml + per, ml * (per - 1), ml * (per + 1), ml * per * 2, ml * 10],
+          unit: 'mL',
+          explanation: `1回で${ml}mLを、1分間に${per}回すいこむので、${ml} × ${per} ＝ ${ml * per}（mL）です。`,
+        }),
+    ])();
+  },
+};
+
+const upperOxygen: Gen = {
+  id: 'body-u-oxygen',
+  make: (rng) => {
+    // すう空気の酸素は約 21%、はいた息では約 17% (体積の割合)
+    const ml = pick(rng, [400, 500, 600]);
+    const per = pick(rng, [12, 15, 16, 18, 20]);
+    const out = pick(rng, [16, 17, 18]);
+    const once = (ml * (21 - out)) / 100;
+    const intro = `すいこむ空気には体積で21%、はき出す息には${out}%の酸素がふくまれているとします。ある人は、1回の呼吸で${ml}mLの空気をすいこみ、同じ体積の息をはき出します。`;
+    return pick(rng, [
+      () =>
+        numeric(rng, {
+          text: `${intro}1回の呼吸で、からだにとり入れられる酸素は何mLですか。`,
+          correct: once,
+          wrong: [(ml * 21) / 100, (ml * out) / 100, ml * (21 - out), once * 2, once + 10],
+          unit: 'mL',
+          explanation: `すいこむ酸素は ${ml} × 0.21 ＝ ${fmt((ml * 21) / 100)}mL、はき出す酸素は ${ml} × ${fmt(out / 100)} ＝ ${fmt((ml * out) / 100)}mL です。その差 ${fmt(once)}mL が、肺で血液にとり入れられた酸素です。`,
+        }),
+      () =>
+        numeric(rng, {
+          text: `${intro}この人が1分間に${per}回呼吸するとき、1分間にからだにとり入れられる酸素は何mLですか。`,
+          correct: once * per,
+          wrong: [once, (ml * 21 * per) / 100, once * (per + 1), once * (per - 1), ml * per],
+          unit: 'mL',
+          explanation: `1回の呼吸でとり入れられる酸素は、${ml} × (0.21 − ${fmt(out / 100)}) ＝ ${fmt(once)}mL です。1分間では ${fmt(once)} × ${per} ＝ ${fmt(once * per)}（mL）です。`,
+        }),
+    ])();
+  },
+};
+
 /** ジェネレーターと、それを出す学年 */
 export const BODY: Entry[] = [
   forGrades(lowerSenses, 3),
   forGrades(lowerPulse, 3, 4),
+  forGrades(lowerPulseCount, 3, 4),
+  forGrades(lowerBreathCount, 3, 4),
   forGrades(lowerBones, 4),
   forGrades(lowerJoints, 4),
   forGrades(upperBirth, 5),
@@ -197,5 +309,6 @@ export const BODY: Entry[] = [
   forGrades(upperDigestion, 6),
   forGrades(upperHeart, 6),
   forGrades(upperBreath, 5, 6),
+  forGrades(upperOxygen, 5, 6),
   forGrades(upperNerve, 6),
 ];
