@@ -66,6 +66,24 @@ const lowerRubber = facts('motion-l-rubber', [
     wrong: ['じしゃくでつる魚つりゲーム', '豆電球のかい中電とう', '風で回るかざぐるま'],
     ex: 'ゴムは、のばしたときだけでなく、ねじったときも、もとにもどろうとします。その力でプロペラを回して飛びます。',
   },
+  {
+    q: 'わゴムの力で走る車で、ゴムを2本にふやしました。1本のときと同じきょりだけ走らせるには、どうすればよいですか。',
+    a: 'ゴムをのばす長さを短くする',
+    wrong: ['ゴムをのばす長さを長くする', 'ゴムを水でぬらす', 'ゴムを切って短くする'],
+    ex: 'ゴムを2本にすると、もとにもどろうとする力が大きくなります。同じきょりだけ走らせるには、のばす長さを短くします。',
+  },
+  {
+    q: 'わゴムの力で走る車で、ゴムをのばす長さを10cmから5cmにしました。車の進むきょりはどうなりますか。',
+    a: '短くなる',
+    wrong: ['長くなる', '変わらない', '後ろに進むようになる'],
+    ex: 'ゴムをのばす長さが短いほど、もとにもどろうとする力は小さくなり、車の進むきょりは短くなります。',
+  },
+  {
+    q: '身のまわりで、のばしたゴムがもとにもどろうとする力を利用しているものはどれですか。',
+    a: 'ゴムでっぽう',
+    wrong: ['方位じしん', '虫めがね', '温度計'],
+    ex: 'ゴムでっぽうは、のばしたゴムがもとにもどろうとする力で、玉を飛ばします。',
+  },
 ]);
 
 const lowerSlope = facts('motion-l-slope', [
@@ -92,6 +110,24 @@ const lowerSlope = facts('motion-l-slope', [
     a: 'だんだん速くなる',
     wrong: ['だんだんおそくなる', 'ずっと同じ速さ', 'とちゅうで止まる'],
     ex: 'しゃ面を下るボールは、だんだん速くなっていきます。しゃ面の下で、いちばん速くなります。',
+  },
+  {
+    q: 'しゃ面を転がしたボールを木ぎれに当てる実験で、ボールの重さによるちがいを調べます。同じにしておく条件はどれですか。',
+    a: 'ボールを転がしはじめる高さ',
+    wrong: ['ボールの重さ', '木ぎれが動いたきょり', '実験の結果'],
+    ex: 'ボールの重さによるちがいを調べるときは、重さだけを変えて、転がしはじめる高さや木ぎれなど、ほかの条件は同じにします。',
+  },
+  {
+    q: 'しゃ面を転がり落ちたボールが、平らなゆかを転がって、やがて止まりました。止まるのはなぜですか。',
+    a: 'ゆかとの間のまさつなどで、だんだんおそくなるから',
+    wrong: ['ボールが軽くなるから', 'ボールが冷えるから', 'ボールがつかれるから'],
+    ex: '転がるボールには、ゆかとの間で動きをさまたげる力（まさつ）などがはたらくので、だんだんおそくなって止まります。',
+  },
+  {
+    q: 'ボウリングで、ピンをたくさんたおすには、どんなボールをどのように転がすとよいですか。',
+    a: '重いボールを速く転がす',
+    wrong: ['軽いボールをゆっくり転がす', '重いボールをゆっくり転がす', '軽いボールを転がさずに置く'],
+    ex: '動いているものが、ほかのものを動かすはたらきは、重いほど、また速いほど大きくなります。',
   },
 ]);
 
@@ -125,6 +161,18 @@ const lowerSwing = facts('motion-l-swing', [
     a: 'メトロノーム',
     wrong: ['ばねばかり', '方位じしん', '虫めがね', 'せんぬき'],
     ex: 'メトロノームは、おもりの位置を変えることで、ふれる速さを変えています。ふりこ時計も、ふりこが同じ時間でふれることを利用しています。',
+  },
+  {
+    q: 'ふりこが1往復する時間を正しくはかるには、どうすればよいですか。',
+    a: '10往復する時間を何回かはかって平均し、10でわる',
+    wrong: ['1往復の時間を1回だけはかる', 'ふれはばを大きくしたり小さくしたりしながらはかる', 'おもりを手でおしながらはかる'],
+    ex: '1往復の時間は短くてはかりにくいので、10往復の時間をはかって10でわります。何回かはかって平均すると、より正しくなります。',
+  },
+  {
+    q: 'ふりこのおもりを重いものにかえると、1往復する時間はどうなりますか。',
+    a: '変わらない',
+    wrong: ['長くなる', '短くなる', 'ふれなくなる'],
+    ex: 'ふりこが1往復する時間は、ふりこの長さで決まります。おもりの重さやふれはばを変えても変わりません。',
   },
 ]);
 
@@ -293,15 +341,133 @@ const upperCollide = facts('motion-u-collide', [
     wrong: ['物体が軽くなるから', '重力がなくなるから', '物体がつかれるから'],
     ex: '物体と面の間には、動きをさまたげる向きにまさつの力がはたらきます。まさつや空気のていこうがなければ、物体は同じ速さで動きつづけます。',
   },
+  {
+    q: 'しゃ面から転がした球を木ぎれに当てる実験で、木ぎれの動くきょりを大きくする方法として、正しくないものはどれですか。',
+    a: 'しゃ面のかたむきだけを急にして、同じ高さから転がす',
+    wrong: ['球を重いものにかえる', '球を転がす高さを高くする', '高さを高くし、球も重くする'],
+    ex: '木ぎれを動かすはたらきは、球が重いほど、また球を転がす高さが高い（速い）ほど大きくなります。高さが同じなら、かたむきを変えても球の速さは変わりません。',
+  },
+  {
+    q: 'ジェットコースターが、いちばん低いところでいちばん速くなるのはなぜですか。',
+    a: '高いところにあったときのはたらきが、下りるにつれて速さに変わるから',
+    wrong: ['低いところほど、空気がうすいから', '低いところほど、レールが軽いから', 'いちばん低いところで、エンジンが動くから'],
+    ex: '高いところにあるものは、ほかのものを動かすはたらき（エネルギー）をもっています。下りるにつれて、それが速さに変わっていきます。',
+  },
 ]);
+
+const lowerRubberDistance: Gen = {
+  id: 'motion-l-rubberdist',
+  make: (rng) => {
+    const step = pick(rng, [5, 10]); // のばす長さのきざみ (cm)
+    const per = pick(rng, [1, 2, 3]); // step cm のばすごとに進むきょり (m)
+    const k = pick(rng, [3, 4]);
+    const intro = `わゴムの力で走る車で、ゴムをのばす長さを変えて、進むきょりを調べました。ゴムを${step}cmのばすと${per}m、${step * 2}cmのばすと${per * 2}m進みました。のばす長さと進むきょりが、このきまりのとおりにふえるとします。`;
+    return pick(rng, [
+      () =>
+        numeric(rng, {
+          text: `${intro}ゴムを${step * k}cmのばすと、車は何m進みますか。`,
+          correct: per * k,
+          wrong: [per * 2, per * (k + 1), per * (k - 1), step * k, per * k * 2],
+          unit: 'm',
+          explanation: `ゴムを${step}cmのばすごとに、進むきょりが${per}mずつふえています。${step * k}cmは${step}cmの${k}倍なので、${per} × ${k} ＝ ${per * k}（m）進みます。`,
+        }),
+      () =>
+        numeric(rng, {
+          text: `${intro}車を${per * k}m進ませるには、ゴムを何cmのばせばよいですか。`,
+          correct: step * k,
+          wrong: [step * 2, step * (k + 1), step * (k - 1), per * k, step * k * 2],
+          unit: 'cm',
+          explanation: `${step}cmのばすごとに${per}m進みます。${per * k}mは${per}mの${k}倍なので、${step} × ${k} ＝ ${step * k}（cm）のばします。`,
+        }),
+    ])();
+  },
+};
+
+const lowerWindTable: Gen = {
+  id: 'motion-l-windtable',
+  make: (rng) => {
+    const weak = int(rng, 1, 3);
+    const mid = weak + int(rng, 1, 3);
+    const strong = mid + int(rng, 1, 3);
+    const runs = shuffle(
+      [
+        { name: '弱い風', m: weak },
+        { name: '中くらいの風', m: mid },
+        { name: '強い風', m: strong },
+      ],
+      rng,
+    );
+    const target = pick(rng, [runs.find((r) => r.name === '強い風')!, runs.find((r) => r.name === '弱い風')!]);
+    const answer = KANA[runs.indexOf(target)];
+    return fixed({
+      text: `ほをつけた同じ車に、送風機で「弱い風」「中くらいの風」「強い風」を1回ずつ当てて走らせ、進んだきょりをはかりました。どの回にどの風を当てたかは、記録をわすれてしまいました。\n${runs.map((r, i) => `・${KANA[i]}の回　${r.m}m`).join('\n')}\n「${target.name}」を当てたのは、どの回だと考えられますか。`,
+      choices: [...KANA.slice(0, 3), 'これだけではわからない'],
+      correct: answer,
+      explanation: `風が強いほど、車を動かすはたらきが大きくなり、車は遠くまで進みます。${target.name === '強い風' ? 'いちばん遠くまで進んだ' : 'いちばん短いきょりしか進まなかった'}${answer}（${target.m}m）が「${target.name}」です。`,
+    });
+  },
+};
+
+const lowerSlopeTable: Gen = {
+  id: 'motion-l-slopetable',
+  make: (rng) => {
+    const h = pick(rng, [5, 10]); // 高さのきざみ (cm)
+    const d = pick(rng, [3, 4, 5, 6]); // h cm 高くするごとに木ぎれが動くきょり (cm)
+    const k = pick(rng, [3, 4]);
+    return numeric(rng, {
+      text: `しゃ面の上からボールを転がして、しゃ面の下に置いた木ぎれに当てました。ボールを転がす高さを変えて、木ぎれが動いたきょりを調べると、次のようになりました。\n・高さ${h}cm　${d}cm\n・高さ${h * 2}cm　${d * 2}cm\n同じボールと木ぎれで、高さ${h * k}cmから転がすと、木ぎれはおよそ何cm動くと考えられますか。`,
+      correct: d * k,
+      wrong: [d * 2, d * (k + 1), d * (k - 1), h * k, d * k * 2],
+      unit: 'cm',
+      explanation: `高さを${h}cm高くするごとに、木ぎれの動くきょりが${d}cmずつふえています。高いところから転がすほどボールは速くなり、ものを動かすはたらきが大きくなります。高さ${h * k}cmは${h}cmの${k}倍なので、${d} × ${k} ＝ ${d * k}（cm）くらい動くと考えられます。`,
+    });
+  },
+};
+
+const VARS = [
+  { key: 'len', name: 'ふりこの長さ', values: [25, 50, 100] },
+  { key: 'g', name: 'おもりの重さ', values: [20, 40, 60] },
+  { key: 'deg', name: 'ふれはば', values: [10, 20, 30] },
+] as const;
+
+const upperPendulumPair: Gen = {
+  id: 'motion-u-pendpair',
+  make: (rng) => {
+    // ア〜エのうち、調べたい条件だけがちがう 2 つは 1 組だけになるようにする
+    const [target, other1, other2] = shuffle(VARS, rng);
+    type P = { len: number; g: number; deg: number };
+    const base = Object.fromEntries(VARS.map((v) => [v.key, pick(rng, v.values)])) as P;
+    const change = (p: P, v: (typeof VARS)[number]): P => ({ ...p, [v.key]: pick(rng, v.values.filter((x) => x !== p[v.key])) });
+    const a = base;
+    const b = change(base, target);
+    const c = change(base, other1);
+    const d = change(change(base, target), other2);
+    const list = shuffle([a, b, c, d], rng);
+    const name = (p: P) => KANA[list.indexOf(p)];
+    const pair = (p: P, q: P) => [name(p), name(q)].sort().join('と');
+    const correct = pair(a, b);
+    const wrong = [pair(a, c), pair(a, d), pair(b, c), pair(b, d), pair(c, d)];
+    return choice(rng, {
+      text: `「${target.name}」と、ふりこが1往復する時間の関係を調べます。図のア〜エのふりこのうち、どれとどれをくらべればよいですか。`,
+      svg: pendulumGrid(list, KANA.slice(0, 4)),
+      correct,
+      wrong,
+      explanation: `調べたい条件（${target.name}）だけをちがえて、ほかの条件（${other1.name}と${other2.name}）は同じにした2つをくらべます。${correct.replace('と', ' と ')} は、${target.name}だけがちがっています。`,
+    });
+  },
+};
 
 /** ジェネレーターと、それを出す学年 */
 export const MOTION: Entry[] = [
   forGrades(lowerWind, 3),
   forGrades(lowerRubber, 3),
+  forGrades(lowerRubberDistance, 3, 4),
+  forGrades(lowerWindTable, 3),
   forGrades(lowerSlope, 4),
   forGrades(lowerSwing, 4),
+  forGrades(lowerSlopeTable, 4, 5),
   forGrades(upperPendulum, 5, 6),
+  forGrades(upperPendulumPair, 5, 6),
   forGrades(upperPeriod, 5),
   forGrades(upperLength, 6),
   forGrades(upperSpeed, 6),

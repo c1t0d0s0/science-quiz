@@ -1,5 +1,5 @@
 import { buoyFig, springCombo, springFig } from '../diagrams/physics';
-import { choice, facts, forGrades, int, numeric, oneOf, pick, type Entry, type Gen } from './helpers';
+import { choice, facts, fmt, forGrades, int, numeric, oneOf, pick, type Entry, type Gen } from './helpers';
 
 const FLOATS = ['木のつみ木', '発ぽうスチロール', 'ろうそく', '氷', 'コルクのせん', 'からのペットボトル'];
 const SINKS = ['鉄のくぎ', '10円玉', 'ガラスのビー玉', '小石', 'ねん土のかたまり', 'アルミニウムはくをかたく丸めた玉'];
@@ -63,6 +63,24 @@ const lowerRubber = facts('spring-l-rubber', [
     a: 'ばねばかり',
     wrong: ['上皿てんびん', 'メスシリンダー', '温度計', '方位じしん'],
     ex: 'ばねばかりは、重いものほどばねが長くのびることを利用して、重さをはかります。上皿てんびんは、左右のつり合いを利用しています。',
+  },
+  {
+    q: 'ばねばかりで重さをはかるとき、はじめにすることはどれですか。',
+    a: '何もつるさないときに、目もりが0になっているかたしかめる',
+    wrong: ['いちばん重いおもりをつるしておく', 'ばねを手で強くのばしておく', 'ばねばかりを横にねかせておく'],
+    ex: 'ばねばかりは、何もつるさないときに目もりが0になっているかをたしかめてから使います。',
+  },
+  {
+    q: 'ばねばかりの目もりを読むとき、目の位置はどうしますか。',
+    a: 'はりと同じ高さで、正面から読む',
+    wrong: ['上から見下ろして読む', '下から見上げて読む', 'ななめ横から読む'],
+    ex: '目もりは、はりと同じ高さで、正面から読みます。上や下から見ると、ずれて読んでしまいます。',
+  },
+  {
+    q: 'ゴムやばねのように、力を加えると形が変わり、力をなくすともとにもどる性質を何といいますか。',
+    a: 'だん性',
+    wrong: ['じ性', '電気を通す性質', 'とける性質'],
+    ex: 'ゴムやばねは、のばしたりちぢめたりしても、力をなくすともとにもどります。この性質をだん性といいます。',
   },
 ]);
 
@@ -279,14 +297,97 @@ const upperPressure: Gen = {
     ])(),
 };
 
+const lowerBuoy: Gen = {
+  id: 'spring-l-buoy',
+  make: (rng) => {
+    const air = int(rng, 6, 30) * 10;
+    const up = int(rng, 1, air / 10 - 2) * 10;
+    const inWater = air - up;
+    const intro = `ばねばかりにおもりをつるすと、空気中では${air}gをさしました。このおもりを、ばねばかりにつるしたまま水の中に全部しずめると`;
+    const why = '水の中のものは、水から上向きの力（ふ力）を受けます。そのぶん、ばねばかりの目もりは小さくなります。';
+    return pick(rng, [
+      () =>
+        numeric(rng, {
+          text: `${intro}、${inWater}gをさしました。おもりが水から受けた上向きの力は、何g分ですか。`,
+          svg: buoyFig({ scale: `${inWater}g`, object: 'おもり', water: true }),
+          correct: up,
+          wrong: [air, inWater, air + inWater, up + 10, up - 10],
+          unit: 'g',
+          explanation: `${why}へった分が上向きの力なので、${air} − ${inWater} ＝ ${up}（g分）です。`,
+        }),
+      () =>
+        numeric(rng, {
+          text: `${intro}、おもりは水から${up}g分の上向きの力を受けました。このとき、ばねばかりは何gをさしますか。`,
+          svg: buoyFig({ scale: '？g', object: 'おもり', water: true }),
+          correct: inWater,
+          wrong: [air, up, air + up, inWater + 10, inWater - 10],
+          unit: 'g',
+          explanation: `${why}目もりは ${air} − ${up} ＝ ${inWater}（g）になります。`,
+        }),
+    ])();
+  },
+};
+
+const upperTable: Gen = {
+  id: 'spring-u-table',
+  make: (rng) => {
+    // A は短くてよくのび、B は長くてのびにくい。どこかで同じ長さになる
+    for (;;) {
+      const pb = pick(rng, [1, 1.5, 2]);
+      const pa = pb + pick(rng, [0.5, 1, 1.5, 2]);
+      const a0 = int(rng, 8, 15);
+      const b0 = a0 + int(rng, 2, 8);
+      const same = ((b0 - a0) / (pa - pb)) * 10;
+      const ws = pick(rng, [[20, 40], [10, 30], [30, 50]]);
+      // 表にある重さで同じ長さになると、計算しなくても答えがわかってしまう
+      if (!Number.isInteger(same / 10) || same > 120 || ws.includes(same)) continue;
+      const len = (n: number, p: number, g: number) => n + (p * g) / 10;
+      const table = ws.map((g) => `・${g}gのとき　A ${fmt(len(a0, pa, g))}cm、B ${fmt(len(b0, pb, g))}cm`).join('\n');
+      const intro = `ばねAとばねBに、いろいろな重さのおもりをつるして、ばね全体の長さをはかりました。\n${table}`;
+      const [g1, g2] = ws;
+      const perA = `Aは、${g2 - g1}gふえると ${fmt(len(a0, pa, g2))} − ${fmt(len(a0, pa, g1))} ＝ ${fmt((pa * (g2 - g1)) / 10)}cm のびるので、10gで${fmt(pa)}cmのびます。`;
+      return pick(rng, [
+        () =>
+          numeric(rng, {
+            text: `${intro}\nばねAの、何もつるさないときの長さは何cmですか。`,
+            correct: a0,
+            wrong: [len(a0, pa, g1), b0, a0 - pa, a0 + pa, len(a0, pa, g1) - pa],
+            unit: 'cm',
+            explanation: `${perA}${g1}gでは ${fmt((pa * g1) / 10)}cm のびているので、もとの長さは ${fmt(len(a0, pa, g1))} − ${fmt((pa * g1) / 10)} ＝ ${a0}（cm）です。`,
+          }),
+        () => {
+          const g = pick(rng, [60, 70, 80, 100]);
+          return numeric(rng, {
+            text: `${intro}\nばねAに${g}gのおもりをつるすと、ばね全体の長さは何cmになりますか。`,
+            correct: len(a0, pa, g),
+            wrong: [(pa * g) / 10, len(b0, pb, g), len(a0, pa, g) + pa, len(a0, pa, g) - pa, len(a0, pa, g2) * 2],
+            unit: 'cm',
+            explanation: `${perA}もとの長さは ${fmt(len(a0, pa, g1))} − ${fmt((pa * g1) / 10)} ＝ ${a0}cm です。${g}gでは ${fmt(pa)} × ${g / 10} ＝ ${fmt((pa * g) / 10)}cm のびるので、${a0} ＋ ${fmt((pa * g) / 10)} ＝ ${fmt(len(a0, pa, g))}（cm）です。`,
+          });
+        },
+        () =>
+          numeric(rng, {
+            text: `${intro}\nばねAとばねBに同じ重さのおもりをつるして、2本の長さが同じになるのは、何gのおもりをつるしたときですか。`,
+            correct: same,
+            wrong: [same + 10, same - 10, same * 2, same / 2, same + 20],
+            unit: 'g',
+            explanation: `表から、Aはもとの長さ${a0}cmで10gごとに${fmt(pa)}cm、Bはもとの長さ${b0}cmで10gごとに${fmt(pb)}cmのびます。長さの差 ${b0 - a0}cm は、10gごとに ${fmt(pa)} − ${fmt(pb)} ＝ ${fmt(pa - pb)}cm ずつちぢまるので、${b0 - a0} ÷ ${fmt(pa - pb)} × 10 ＝ ${same}（g）で同じ長さになります。`,
+          }),
+      ])();
+    }
+  },
+};
+
 /** ジェネレーターと、それを出す学年 */
 export const SPRING: Entry[] = [
   forGrades(lowerFloat, 3),
   forGrades(lowerRubber, 3),
-  forGrades(lowerStretch, 4),
+  forGrades(lowerStretch, 3, 4),
   forGrades(lowerLength, 4),
-  forGrades(upperCombo, 5),
+  forGrades(lowerBuoy, 3, 4, 5),
+  forGrades(upperCombo, 4, 5),
   forGrades(upperDensity, 5, 6),
+  forGrades(upperTable, 5, 6),
   forGrades(upperBuoyancy, 6),
   forGrades(upperPressure, 6),
 ];

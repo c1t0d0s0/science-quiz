@@ -1,5 +1,6 @@
+import { shuffle } from '../core/rng';
 import { lensFig, mirrorFig, waveGrid } from '../diagrams/physics';
-import { choice, facts, fixed, forGrades, KANA, numeric, pick, type Entry, type Gen } from './helpers';
+import { choice, facts, fixed, forGrades, int, KANA, numeric, pick, type Entry, type Gen } from './helpers';
 import { lowerLens } from './tools';
 
 const lowerMirror = facts('light-l-mirror', [
@@ -26,6 +27,24 @@ const lowerMirror = facts('light-l-mirror', [
     a: '光がまっすぐに進み、ものの後ろに回りこめないから',
     wrong: ['光がものの中にたまるから', 'ものが光を出すから', '地面が光をすいこむから'],
     ex: '光はまっすぐに進むので、ものにさえぎられると、その後ろには光がとどかず、かげができます。',
+  },
+  {
+    q: 'かがみではね返した日光を、人の顔に当ててはいけないのはなぜですか。',
+    a: '目に入ると、目をいためるから',
+    wrong: ['かがみがわれてしまうから', '顔がつめたくなるから', 'かがみがくもってしまうから'],
+    ex: 'はね返した日光が目に入ると、目をいためることがあります。人の顔に当ててはいけません。',
+  },
+  {
+    q: 'ものの後ろにできるかげの向きは、何によって決まりますか。',
+    a: '太陽の位置',
+    wrong: ['ものの色', 'ものの重さ', 'その日の気温'],
+    ex: 'かげは、日光をさえぎるものの、太陽と反対がわにできます。太陽の位置が変わると、かげの向きも変わります。',
+  },
+  {
+    q: '虫めがねに日光を当てると、日光をどのようにできますか。',
+    a: '1か所に集めることができる',
+    wrong: ['まったく通さないようにできる', '黒い色に変えることができる', '後ろにはね返すことができる'],
+    ex: '虫めがねを通った日光は、1か所に集まります。集めたところは、とても明るく、熱くなります。',
   },
 ]);
 
@@ -59,6 +78,18 @@ const lowerSound = facts('light-l-sound', [
     a: 'ぴんと張っているとき',
     wrong: ['たるんでいるとき', 'ぬれているとき', '結び目がたくさんあるとき'],
     ex: '糸がぴんと張っていると、ふるえがよく伝わります。たるんでいると、ふるえが伝わりにくくなります。',
+  },
+  {
+    q: '音が出ているものに共通していることはどれですか。',
+    a: 'ふるえている',
+    wrong: ['あたたかくなっている', '光っている', '重くなっている'],
+    ex: '音が出ているものは、ふるえています。ふるえを止めると、音も止まります。',
+  },
+  {
+    q: '鉄ぼうのはしを軽くたたくと、反対のはしに耳を当てている人に音が聞こえました。音は何を伝わってきましたか。',
+    a: '鉄ぼうの鉄',
+    wrong: ['光', '風', '地面の下の水'],
+    ex: '音は、空気だけでなく、鉄や木、水なども伝わります。',
   },
 ]);
 
@@ -119,6 +150,18 @@ const lowerPitch = facts('light-l-pitch', [
     a: '水が少ないコップ',
     wrong: ['水が多いコップ', 'どちらも同じ', 'どちらも音は出ない'],
     ex: 'たたいたときは、コップと水がいっしょにふるえます。水が少ないほど、ふるえるものが軽く、速くふるえるので、高い音が出ます。',
+  },
+  {
+    q: 'わゴムをはじいて音を出します。高い音を出すには、わゴムをどうすればよいですか。',
+    a: '強くはる',
+    wrong: ['ゆるめる', '太いものにかえる', '弱くはじく'],
+    ex: 'げんやゴムは、強くはるほど、細いほど、ふるえる部分が短いほど、高い音が出ます。',
+  },
+  {
+    q: '大きな音と小さな音のちがいは、ものがふるえるときの何のちがいですか。',
+    a: 'ふるえるはばの大きさ',
+    wrong: ['ものの色', 'ものの重さ', 'ものの温度'],
+    ex: '大きな音のときは、ものが大きくふるえています。音の高さは、ふるえる速さ（1秒間にふるえる回数）で決まります。',
   },
 ]);
 
@@ -309,17 +352,37 @@ const upperEcho: Gen = {
     ])(),
 };
 
+const lowerMirrorCount: Gen = {
+  id: 'light-l-mirrorcount',
+  make: (rng) => {
+    // かがみの数が多いほど、日光が重なったところは明るく、あたたかくなる
+    const start = int(rng, 14, 18);
+    const rise = [int(rng, 1, 2), int(rng, 5, 7), int(rng, 9, 11), int(rng, 13, 15)];
+    const runs = shuffle([0, 1, 2, 3], rng);
+    const target = pick(rng, [0, 3]);
+    const answer = KANA[runs.indexOf(target)];
+    const name = (n: number) => (n === 0 ? 'かがみを使わない' : `かがみ${n}まい`);
+    return fixed({
+      text: `かべにはった同じ黒い紙ア〜エに、「かがみを使わない」「かがみ1まい」「かがみ2まい」「かがみ3まい」で日光をはね返して当てました。はじめはどれも${start}℃で、5分後の温度は次のようになりました。\n${runs.map((n, i) => `・${KANA[i]}　${start + rise[n]}℃`).join('\n')}\n「${name(target)}」で日光を当てたのは、どれだと考えられますか。`,
+      choices: KANA.slice(0, 4),
+      correct: answer,
+      explanation: `はね返した日光を重ねるほど、当たったところは明るく、あたたかくなります。かがみの数が${target === 0 ? 'いちばん少ない' : 'いちばん多い'}ものは、温度がいちばん${target === 0 ? '低い' : '高い'} ${answer}（${start + rise[target]}℃）です。`,
+    });
+  },
+};
+
 /** ジェネレーターと、それを出す学年 */
 export const LIGHT: Entry[] = [
   forGrades(lowerMirror, 3),
   forGrades(lowerSound, 3),
   forGrades(lowerLens, 3),
+  forGrades(lowerMirrorCount, 3, 4),
   forGrades(lowerReflect, 4),
   forGrades(lowerPitch, 4),
   forGrades(upperRefract, 5, 6),
   forGrades(upperWave, 5, 6),
-  forGrades(upperSound, 5),
+  forGrades(upperSound, 4, 5),
   forGrades(upperLens, 6),
-  forGrades(upperEcho, 6),
+  forGrades(upperEcho, 5, 6),
 ];
 
