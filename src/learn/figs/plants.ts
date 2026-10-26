@@ -116,29 +116,47 @@ export function germinationPlan(): Plan {
         body: ellipse(190, 212, 20, 13, 'seed') + moving('sprout', 'transform-origin:190px 212px', path('M190 206V140', 'stem') + leafShape(190, 150, -160, 0.7) + leafShape(190, 150, -20, 0.7)),
       },
       { id: 'water', name: '水', box: [116, 206, 148, 44], anchor: [130, 230], label: [90, 236, 'end'], body: '' },
+      // 温度・日光・肥料は、絵と「今の状態」の文字で表す (名前は書かない)
       {
         id: 'temp',
         name: '温度',
-        box: [300, 30, 110, 60],
-        anchor: [320, 60],
+        box: [294, 26, 120, 76],
+        anchor: [314, 60],
         label: [356, 104],
-        body: `<g class="only-warm">${text(356, 66, '20℃くらい', { cls: 'small' })}</g><g class="only-cold">${text(356, 66, '冷ぞう庫 (5℃)', { cls: 'small' })}</g>`,
+        ownText: true,
+        body:
+          rect(310, 34, 10, 50, 'box', 5) +
+          circle(315, 88, 9, 'box') +
+          `<g class="only-warm">${rect(312, 52, 6, 36, 'thermo-warm')}${circle(315, 88, 6, 'thermo-warm')}${text(330, 70, '20℃くらい', { anchor: 'start', cls: 'small' })}</g>` +
+          `<g class="only-cold">${rect(312, 76, 6, 12, 'thermo-cold')}${circle(315, 88, 6, 'thermo-cold')}${text(330, 62, '冷ぞう庫', { anchor: 'start', cls: 'small' })}${text(330, 80, '(5℃)', { anchor: 'start', cls: 'small' })}</g>`,
       },
       {
         id: 'light',
         name: '日光',
-        box: [20, 20, 90, 80],
-        anchor: [60, 56],
+        box: [14, 20, 104, 98],
+        anchor: [60, 52],
         label: [60, 112],
-        body: `<g class="only-light">${circle(60, 56, 22, 'fill-mark')}</g><g class="only-dark">${rect(36, 34, 48, 44, 'ink-soft', 4)}${text(60, 61, '箱', { cls: 'tiny on-dark' })}</g>`,
+        ownText: true,
+        body:
+          `<g class="only-light">${circle(60, 52, 20, 'fill-mark')}${[0, 1, 2, 3, 4, 5, 6, 7]
+            .map((i) => {
+              const a = (i * Math.PI) / 4;
+              return line(60 + 25 * Math.cos(a), 52 + 25 * Math.sin(a), 60 + 31 * Math.cos(a), 52 + 31 * Math.sin(a), 'ln thin');
+            })
+            .join('')}${text(60, 106, '日光が当たる', { cls: 'small' })}</g>` +
+          `<g class="only-dark">${rect(38, 32, 44, 40, 'ink-soft', 4)}${text(60, 106, '箱で暗くする', { cls: 'small' })}</g>`,
       },
       {
         id: 'fert',
         name: '肥料',
-        box: [300, 130, 100, 60],
-        anchor: [320, 160],
-        label: [350, 204],
-        body: `<g class="only-fert">${rect(330, 140, 40, 40, 'fill-soft', 6)}${text(350, 166, '肥料', { cls: 'tiny' })}</g>`,
+        box: [300, 122, 110, 84],
+        anchor: [330, 150],
+        label: [354, 200],
+        ownText: true,
+        body:
+          `<g class="fert-bag">${path('M334 132H374L378 176H330Z', 'fill-soft')}${line(334, 140, 374, 140, 'ln thin')}${text(354, 162, '肥料', { cls: 'small' })}</g>` +
+          `<g class="only-fert">${text(354, 198, '肥料あり', { cls: 'small' })}${[150, 172, 210, 232].map((x) => circle(x, 226, 3, 'granule')).join('')}</g>` +
+          `<g class="only-nofert">${text(354, 198, '肥料なし', { cls: 'small' })}</g>`,
       },
     ],
     flows: [],

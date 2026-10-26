@@ -14,6 +14,8 @@ export interface Part {
   /** 名前を書く位置。anchor をつけると、文字のそろえ方 (start / end) を変えられる */
   label: [number, number, string?];
   body: string;
+  /** body の中に、今の状態を表す文字 (「肥料あり」など) を自分でかくので、名前は書かない */
+  ownText?: boolean;
 }
 
 export interface Flow {
@@ -55,7 +57,7 @@ export function buildFig(plan: Plan, labels?: Record<string, string>): string {
   // 光らせる四角は、ほかの部品にかぶらないよう、部品より下にまとめてかく (地面や水はすけて見える)
   const highlights = plan.parts.map((p) => `<g data-part="${p.id}">${rect(...p.box, 'hl', 8)}</g>`);
   const parts = plan.parts.map((p) => {
-    const name = labels ? '' : text(p.label[0], p.label[1], p.name, { cls: 'small part-name', anchor: p.label[2] });
+    const name = labels || p.ownText ? '' : text(p.label[0], p.label[1], p.name, { cls: 'small part-name', anchor: p.label[2] });
     const mark = labels?.[p.id] ? tag(p.anchor[0], p.anchor[1], labels[p.id]) : '';
     return `<g data-part="${p.id}">${p.body}${name}${mark}</g>`;
   });

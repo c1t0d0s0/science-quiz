@@ -2241,6 +2241,34 @@ rt {
   display: none;
 }
 
+.fert .only-nofert {
+  display: none;
+}
+
+/* 肥料をあたえないときは、肥料のふくろをうすく */
+.fig .fert-bag {
+  opacity: 0.35;
+}
+
+.fert .fert-bag {
+  opacity: 1;
+}
+
+.fig .granule {
+  fill: #7a5bb5;
+  stroke: none;
+}
+
+.fig .thermo-warm {
+  fill: #d0463b;
+  stroke: none;
+}
+
+.fig .thermo-cold {
+  fill: #3d6fd0;
+  stroke: none;
+}
+
 .no-air .only-sink,
 .cold .only-cold,
 .dark .only-dark,
