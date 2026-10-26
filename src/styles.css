@@ -1933,6 +1933,92 @@ rt {
   animation: none;
 }
 
+/* 人体 */
+.fig .body-outline {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.fig .organ-line {
+  fill: var(--rule-soft);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.fig .vessel {
+  fill: none;
+  stroke: #d0463b;
+  stroke-width: 3;
+}
+
+.fig .bolus {
+  fill: #b5652b;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  transition: offset-distance 0.6s;
+}
+
+.fig .flow-red {
+  stroke: #d0463b;
+}
+
+.fig .flow-blue {
+  stroke: #3d6fd0;
+}
+
+.fig .flow-food {
+  stroke: #b5652b;
+}
+
+.fig .flow-air {
+  stroke: #6aa8d8;
+}
+
+.fig .flow-o2 {
+  stroke: #d0463b;
+}
+
+.fig .flow-co2 {
+  stroke: var(--muted);
+}
+
+.learn-figure .beat {
+  animation: learn-beat var(--beat, 0.9s) ease-in-out infinite;
+}
+
+.learn-figure .breathe {
+  animation: learn-breathe calc(var(--dur, 1s) * 2) ease-in-out infinite alternate;
+}
+
+/* はく息のときは、空気が反対向きに流れる */
+.learn-figure.exhale .flow-air.is-flow {
+  animation-direction: reverse;
+}
+
+@keyframes learn-beat {
+  0%,
+  60%,
+  100% {
+    transform: scale(1);
+  }
+
+  25% {
+    transform: scale(0.88);
+  }
+}
+
+@keyframes learn-breathe {
+  from {
+    transform: scale(0.94);
+  }
+
+  to {
+    transform: scale(1.04);
+  }
+}
+
 @keyframes learn-spin {
   to {
     transform: rotate(360deg);
@@ -1948,6 +2034,8 @@ rt {
 @media (prefers-reduced-motion: reduce) {
   .learn-figure .spin,
   .learn-figure .swing,
+  .learn-figure .beat,
+  .learn-figure .breathe,
   .learn-figure .flow.is-flow {
     animation: none;
   }
@@ -1957,7 +2045,8 @@ rt {
   .fig .slide,
   .fig .swing line,
   .fig .bob,
-  .fig .bob circle {
+  .fig .bob circle,
+  .fig .bolus {
     transition: none;
   }
 

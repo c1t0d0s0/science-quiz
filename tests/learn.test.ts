@@ -5,6 +5,7 @@ import { plantParts } from '../src/learn/figs/power';
 import { parseLearnHash } from '../src/learn/href';
 import { GUIDES } from '../src/learn/index';
 import { PLANTS } from '../src/learn/power';
+import { digestStage } from '../src/learn/body';
 import { period } from '../src/learn/physics';
 import { initialValues, type Guide, type Values } from '../src/learn/types';
 import { analyze, fracText } from '../src/diagrams/circuit';
@@ -168,5 +169,30 @@ describe('物理の解説の検算', () => {
         expect(readout('circuit', { cells, bulbs, sw: true }, '豆電球1個の明るさ')).toBe(`1個のときの${fracText(a.perBulb)}倍`);
         expect(readout('circuit', { cells, bulbs, sw: false }, '豆電球1個の明るさ')).toBe('消えている');
       }
+  });
+});
+
+describe('人体の解説の検算', () => {
+  it('消化: 時間がたつと、口 → 胃 → 小腸 → 大腸 → こう門 の順に進む', () => {
+    const order = ['口', '胃', '小腸', '大腸', 'こう門'];
+    let last = 0;
+    for (let h = 0; h <= 24; h++) {
+      const i = order.indexOf(digestStage(h).where);
+      expect(i, `${h}時間`).toBeGreaterThanOrEqual(last);
+      last = i;
+    }
+    expect(last).toBe(order.length - 1);
+  });
+
+  it('呼吸: はく息は、すう空気より酸素が少なく、二酸化炭素が多い', () => {
+    expect(readout('breathing', { inhale: true }, '酸素')).toBe('約21%');
+    expect(readout('breathing', { inhale: false }, '酸素')).toBe('約17%');
+    expect(readout('breathing', { inhale: false }, '二酸化炭素')).toBe('約4%');
+  });
+
+  it('血液: 運動すると脈はくが速くなる', () => {
+    const n = (act: string) => Number(readout('blood', { act }, '1分間の脈はく').match(/\d+/)![0]);
+    expect(n('rest')).toBeLessThan(n('walk'));
+    expect(n('walk')).toBeLessThan(n('run'));
   });
 });
