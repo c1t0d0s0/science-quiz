@@ -38,6 +38,8 @@ export interface State {
   vars?: Record<string, string>;
   /** 図につけるクラス (true のものだけつく) */
   classes?: Record<string, boolean>;
+  /** 図の中の文字 (data-label="key" の text の中身) */
+  labels?: Record<string, string>;
   /** 回る・流れる速さ (0 なら止まる、1 でいちばん速い) */
   speed?: number;
   readouts: Readout[];

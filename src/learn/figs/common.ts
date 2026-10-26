@@ -62,3 +62,10 @@ export function buildFig(plan: Plan, labels?: Record<string, string>): string {
   const flows = plan.flows.map((f) => (f.pipe ? path(f.d, 'pipe-track') : '') + `<path class="flow flow-${f.id}" data-flow="${f.id}" d="${f.d}"/>`);
   return fig(plan.width, plan.height, plan.alt, plan.back, ...highlights, ...flows, ...parts, plan.front ?? '');
 }
+
+/** 操作で中身が変わる文字 (State.labels の key) */
+export const liveText = (x: number, y: number, key: string, initial: string, cls = 'small') =>
+  `<text x="${r(x)}" y="${r(y)}" text-anchor="middle" class="${cls}" data-label="${key}">${initial}</text>`;
+
+/** CSS の変形をかける入れ物。style は transform など */
+export const moving = (cls: string, style: string, body: string) => `<g class="${cls}" style="${style}">${body}</g>`;

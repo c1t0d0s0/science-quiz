@@ -188,6 +188,7 @@ export function renderGuide(root: HTMLElement, guide: Guide, first: number): () 
   function update(): void {
     const s: State = guide.state(values);
     for (const [k, v] of Object.entries(s.vars ?? {})) fig.style.setProperty(k, v);
+    for (const [k, v] of Object.entries(s.labels ?? {})) svg.querySelectorAll(`[data-label="${k}"]`).forEach((el) => (el.textContent = v));
     for (const c of shownClasses) fig.classList.remove(c);
     shownClasses = Object.entries(s.classes ?? {}).filter(([, on]) => on).map(([c]) => c);
     for (const c of shownClasses) fig.classList.add(c);

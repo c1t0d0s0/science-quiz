@@ -1878,6 +1878,61 @@ rt {
   animation-play-state: paused;
 }
 
+/* てこ: うでがかたむき、おもりが目もりの位置に動く */
+.fig .tilt,
+.fig .hang,
+.fig .slide {
+  transition: transform 0.5s;
+}
+
+/* ふりこ: 糸ののびと、おもりの位置・大きさ */
+.fig .swing line,
+.fig .bob,
+.fig .bob circle {
+  transition: transform 0.4s;
+}
+
+.learn-figure .swing {
+  animation: learn-swing calc(var(--period, 2s) / 2) ease-in-out infinite alternate;
+}
+
+@keyframes learn-swing {
+  from {
+    transform: rotate(var(--amp, 20deg));
+  }
+
+  to {
+    transform: rotate(calc(-1 * var(--amp, 20deg)));
+  }
+}
+
+/* 回路: つなぎ方の切りかえ (はじめは乾電池 1 個・豆電球 1 個・スイッチを入れる) */
+.fig .only-cs,
+.fig .only-cp,
+.fig .only-bs,
+.fig .only-bp,
+.fig .only-off,
+.cells-s .only-c1,
+.cells-p .only-c1,
+.bulbs-s .only-b1,
+.bulbs-p .only-b1,
+.sw-off .only-on {
+  display: none;
+}
+
+.cells-s .only-cs,
+.cells-p .only-cp,
+.bulbs-s .only-bs,
+.bulbs-p .only-bp,
+.sw-off .only-off {
+  display: inline;
+}
+
+.learn-figure.sw-off .flow-electric {
+  opacity: 0.2;
+  animation: none;
+}
+
 @keyframes learn-spin {
   to {
     transform: rotate(360deg);
@@ -1892,8 +1947,18 @@ rt {
 
 @media (prefers-reduced-motion: reduce) {
   .learn-figure .spin,
+  .learn-figure .swing,
   .learn-figure .flow.is-flow {
     animation: none;
+  }
+
+  .fig .tilt,
+  .fig .hang,
+  .fig .slide,
+  .fig .swing line,
+  .fig .bob,
+  .fig .bob circle {
+    transition: none;
   }
 
   .meter-bar,

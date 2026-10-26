@@ -5,7 +5,9 @@ import { plantParts } from '../src/learn/figs/power';
 import { parseLearnHash } from '../src/learn/href';
 import { GUIDES } from '../src/learn/index';
 import { PLANTS } from '../src/learn/power';
-import type { Guide, Values } from '../src/learn/types';
+import { period } from '../src/learn/physics';
+import { initialValues, type Guide, type Values } from '../src/learn/types';
+import { analyze, fracText } from '../src/diagrams/circuit';
 import { upperEnergy, upperFigure, upperHow, upperMerit } from '../src/questions/power';
 
 /** 操作の値の組み合わせ (つまみは、はし・まん中・はじめの値、切りかえは全部) */
@@ -132,5 +134,39 @@ describe('発電所', () => {
       const group = q.svg!.split('<g data-part=').find((g) => g.startsWith(`"${part.id}"`) && g.includes('class="tag"'))!;
       expect(group, q.text).toContain(`>${q.choices[q.answer]}</text>`);
     }
+  });
+});
+
+const guide = (id: string) => GUIDES.find((g) => g.id === id)!;
+const readout = (id: string, v: Values, label: string) => guide(id).state({ ...initialValues(guide(id)), ...v }).readouts.find((r) => r.label === label)!.value;
+
+describe('物理の解説の検算', () => {
+  it('てこ: 左右の「重さ × きょり」が等しいときだけ水平', () => {
+    for (const lw of [10, 20, 30, 40, 50, 60])
+      for (const ld of [1, 2, 3, 4, 5, 6])
+        for (const rw of [10, 30, 60])
+          for (const rd of [1, 3, 6]) {
+            const s = guide('lever').state({ lw, ld, rw, rd });
+            const expected = lw * ld === rw * rd ? '0deg' : lw * ld > rw * rd ? '-10deg' : '10deg';
+            expect(s.vars!['--tilt'], `${lw} ${ld} ${rw} ${rd}`).toBe(expected);
+          }
+  });
+
+  it('ふりこ: 1 往復の時間は糸の長さだけで決まり、長さ 4 倍で 2 倍', () => {
+    const t = (len: string, g: string, amp: string) => readout('pendulum', { len, g, amp }, '1往復する時間');
+    expect(t('50', '10', '10')).toBe(t('50', '40', '30'));
+    expect(period(100)).toBeCloseTo(period(25) * 2);
+    expect(period(100)).toBeCloseTo(2.0, 1);
+  });
+
+  it('回路: 明るさは analyze と同じで、スイッチを切ると消える', () => {
+    for (const cells of ['1', 's', 'p'])
+      for (const bulbs of ['1', 's', 'p']) {
+        const n = (v: string) => (v === '1' ? 1 : 2);
+        const mode = (v: string) => (v === 'p' ? 'p' : 's') as 's' | 'p';
+        const a = analyze({ cells: n(cells), cellMode: mode(cells), bulbs: n(bulbs), bulbMode: mode(bulbs) });
+        expect(readout('circuit', { cells, bulbs, sw: true }, '豆電球1個の明るさ')).toBe(`1個のときの${fracText(a.perBulb)}倍`);
+        expect(readout('circuit', { cells, bulbs, sw: false }, '豆電球1個の明るさ')).toBe('消えている');
+      }
   });
 });
