@@ -6,6 +6,7 @@ import { parseLearnHash } from '../src/learn/href';
 import { GUIDES } from '../src/learn/index';
 import { PLANTS } from '../src/learn/power';
 import { digestStage } from '../src/learn/body';
+import { flameSize, waterState } from '../src/learn/matter';
 import { period } from '../src/learn/physics';
 import { initialValues, type Guide, type Values } from '../src/learn/types';
 import { analyze, fracText } from '../src/diagrams/circuit';
@@ -194,5 +195,25 @@ describe('人体の解説の検算', () => {
     const n = (act: string) => Number(readout('blood', { act }, '1分間の脈はく').match(/\d+/)![0]);
     expect(n('rest')).toBeLessThan(n('walk'));
     expect(n('walk')).toBeLessThan(n('run'));
+  });
+});
+
+describe('熱・物質の解説の検算', () => {
+  it('水: 0℃より下は氷、0〜100℃は水、100℃より上は水蒸気', () => {
+    expect(waterState(-10).cls).toBe('ice');
+    expect(waterState(0).cls).toBe('melt');
+    expect(waterState(50).cls).toBe('liquid');
+    expect(waterState(100).cls).toBe('boil');
+    expect(waterState(110).cls).toBe('gas');
+  });
+
+  it('燃焼: 上が開いていれば燃えつづけ、ふたをすると、やがて火が消える', () => {
+    for (const gap of [true, false]) {
+      expect(flameSize(false, gap, 30)).toBeGreaterThan(0);
+      expect(flameSize(true, gap, 30)).toBe(0);
+      expect(flameSize(true, gap, 0)).toBeGreaterThan(0);
+    }
+    // ふたをして火が消えても、酸素はなくならない
+    expect(readout('burning', { lid: true, gap: false, sec: 30 }, 'びんの中の酸素')).toBe('約17%');
   });
 });

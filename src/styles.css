@@ -2019,6 +2019,87 @@ rt {
   }
 }
 
+/* 熱・物質 */
+.fig .heat {
+  fill: #e0563f;
+  stroke: none;
+  transition: opacity 0.5s;
+}
+
+.fig .ice {
+  fill: #d8eef8;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.fig .glass {
+  fill: #9cc9e8;
+  fill-opacity: 0.12;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+.fig .marker {
+  transition: transform 0.4s;
+}
+
+.fig .fire {
+  transition: transform 0.4s;
+}
+
+.fig .flow-heat,
+.fig .flow-convection {
+  stroke: #e0563f;
+}
+
+.fig .flow-smoke-bottom,
+.fig .flow-smoke-top {
+  stroke: var(--muted);
+}
+
+/* 熱する場所 (はじめは、はし) */
+.fig .only-mid,
+.heat-mid .only-edge {
+  display: none;
+}
+
+.heat-mid .only-mid {
+  display: inline;
+}
+
+/* 水のすがた (はじめは水) */
+.fig .w-ice,
+.fig .w-bub,
+.fig .w-steam,
+.ice .w-water,
+.gas .w-water {
+  display: none;
+}
+
+.ice .w-ice,
+.melt .w-ice,
+.boil .w-bub,
+.gas .w-bub,
+.boil .w-steam {
+  display: inline;
+}
+
+/* 燃え方: ふた・すき間と、けむりの動き */
+.fig .only-lid,
+.fig .only-gap,
+.fig .flow-smoke-bottom,
+.gap .flow-smoke-top,
+.lid .flow-smoke-top,
+.out .fire {
+  display: none;
+}
+
+.lid .only-lid,
+.gap .only-gap,
+.gap:not(.lid) .flow-smoke-bottom {
+  display: inline;
+}
+
 @keyframes learn-spin {
   to {
     transform: rotate(360deg);
