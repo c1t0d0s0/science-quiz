@@ -1418,7 +1418,8 @@ rt {
 
 .learn-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  /* スマホでは 2 列、広い画面では 1 まいを 18rem くらいに */
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
   gap: 0.75rem;
   margin: 1rem 0 1.5rem;
 }
@@ -1435,6 +1436,12 @@ rt {
 
 .learn-card h3 {
   font-size: 1.0625rem;
+}
+
+@media (min-width: 40rem) {
+  .learn-cards {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
 }
 
 .learn-card p {

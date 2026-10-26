@@ -1,3 +1,4 @@
+import { LEARN_FOR } from '../learn/related';
 import { GENERATORS } from '../questions';
 import type { Draft, Gen } from '../questions/helpers';
 import { addRuby } from '../questions/ruby';
@@ -99,7 +100,7 @@ export function dailyQuestions(date: string, level: Level): Question[] {
       choices: q.choices.map(ruby),
       answer: q.answer,
       explanation: ruby(q.explanation),
-      ...(q.learn ? { learn: q.learn } : {}),
+      ...(q.learn || LEARN_FOR[gen.id] ? { learn: q.learn ?? LEARN_FOR[gen.id] } : {}),
     };
   });
   return shuffle(questions, rng);

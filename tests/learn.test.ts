@@ -4,6 +4,11 @@ import { buildFig, planFlows, planParts } from '../src/learn/figs/common';
 import { plantParts } from '../src/learn/figs/power';
 import { parseLearnHash } from '../src/learn/href';
 import { GUIDES } from '../src/learn/index';
+import { LEARN_FOR } from '../src/learn/related';
+import { GENERATORS } from '../src/questions';
+import { CATEGORIES, LEVELS } from '../src/core/quiz';
+import { dailyQuestions } from '../src/core/daily';
+import { addDays } from '../src/core/date';
 import { PLANTS } from '../src/learn/power';
 import { digestStage } from '../src/learn/body';
 import { flameSize, waterState } from '../src/learn/matter';
@@ -257,5 +262,30 @@ describe('植物の解説の検算', () => {
   it('水の通り道: 葉があると、色水が多くへる', () => {
     const ml = (leaf: boolean) => Number(readout('waterpath', { h: 4, leaf }, 'へった色水').match(/[\d.]+/)![0]);
     expect(ml(true)).toBeGreaterThan(ml(false));
+  });
+});
+
+describe('今日の10問から解説へ', () => {
+  it('対応表のジェネレーターと解説は、どれも本当にある', () => {
+    const gens = new Set(LEVELS.flatMap((l) => CATEGORIES.flatMap((c) => GENERATORS[l][c].map((g) => g.id))));
+    for (const [gen, guideId] of Object.entries(LEARN_FOR)) {
+      expect(gens.has(gen), gen).toBe(true);
+      expect(GUIDES.map((g) => g.id), gen).toContain(guideId);
+    }
+  });
+
+  it('対応表のジェネレーターの問題には、learn がつく', () => {
+    let linked = 0;
+    for (let i = 0; i < 60; i++) {
+      for (const level of LEVELS) {
+        for (const q of dailyQuestions(addDays('2026-10-01', i), level)) {
+          if (LEARN_FOR[q.id]) {
+            expect(q.learn, q.id).toBe(LEARN_FOR[q.id]);
+            linked++;
+          }
+        }
+      }
+    }
+    expect(linked).toBeGreaterThan(0);
   });
 });
