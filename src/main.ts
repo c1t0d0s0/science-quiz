@@ -33,17 +33,6 @@ window.addEventListener('hashchange', route);
 // 画面を開いたまま日付が変わっていたら、もどってきたときにホームを新しい日の問題にする
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && shownDate !== jstDate() && !location.hash.startsWith('#/quiz/')) route();
-
-// 最初の画面を出してから、ログインと Firestore の準備をする (Firebase の設定がないビルドでは何もしない)
-void startCloud({
-  // ログインやほぞんの状態が変わった。状態を出しているのはホームだけ
-  onStatus: () => {
-    if (app.querySelector('.home')) renderHome(app);
-  },
-  // Firestore から取りこんで、手元の記録が変わった。今の画面をかき直す
-  onData: () => route(),
-  askMigrate: () => confirm(ACCOUNT.askMigrate),
-});
 });
 route();
 
