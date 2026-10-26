@@ -1,55 +1,51 @@
-import type { PlantId } from '../diagrams/power';
 import type { Fact } from '../questions/helpers';
+import { PLANS, type PlantId } from './figs/power';
+import { clamp, percent, round1, type Guide, type Step } from './types';
 
-// 「発電所のしくみ」の解説。地学ビューアの解説 (ステップごとにハカセが説明し、図の表示が切りかわる) にならう。
-// 6 年生の「電気の利用」に合わせて、くわしい数字は出さない
+// 発電所のしくみ (6 年生の「電気の利用」)。くわしい数字は出さない
 
-export interface Step {
-  title: string;
-  /** ハカセの説明。改行で段落を分ける */
-  text: string;
-  /** 光らせる部品 (図の data-part) */
-  parts: string[];
-  /** 動かす流れ (図の data-flow) */
-  flows: string[];
-}
-
-export interface Control {
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  /** はじめの値 */
-  value: number;
-  /** つまみの値の書き方 */
-  show: (v: number) => string;
-}
-
-export interface Plant {
+/** 発電所の解説の書き方。つまみは 1 つで、つまみの値から発電量 (0〜1) が決まる */
+interface StationDef {
   id: PlantId;
   name: string;
-  /** 一覧のカードに書く、ひとことの説明 */
   lead: string;
   steps: Step[];
-  control: Control;
+  control: { label: string; min: number; max: number; step: number; value: number; show: (v: number) => string };
   /** つまみの値 → 発電量 (0〜1) */
   output: (v: number) => number;
   /** つまみの値 → 図の CSS の変数 (制御棒の位置・パネルの向き) */
   vars?: (v: number) => Record<string, string>;
-  /** エネルギーの変わり方 (はじめに の解説にはない) */
   energy?: string[];
-  /** くらべてみようの表 */
   compare?: { fuel: string; co2: string; weather: string };
   merits: string[];
   issues: string[];
-  /** たしかめ問題 (今日の10問の 6 年生むけにも出す) */
   quiz: Fact[];
 }
 
-const clamp = (x: number) => Math.min(1, Math.max(0, x));
-const percent = (v: number) => `${v}%`;
+export type Station = Guide & { id: PlantId; output: (v: number) => number };
 
-const generator: Plant = {
+function station(d: StationDef): Station {
+  const { control, vars, ...rest } = d;
+  return {
+    ...rest,
+    field: '電気の利用',
+    grades: [6],
+    plan: PLANS[d.id],
+    controls: [{ kind: 'range', key: 'v', ...control }],
+    state: (values) => {
+      const v = Number(values.v);
+      const out = d.output(v);
+      return {
+        speed: out,
+        vars: { '--out': String(out), ...(vars?.(v) ?? {}) },
+        classes: { 'is-off': out === 0 },
+        readouts: [{ label: '発電量', value: `${Math.round(out * 100)}%`, meter: out }],
+      };
+    },
+  };
+}
+
+const generator = station({
   id: 'generator',
   name: 'はじめに：発電機のしくみ',
   lead: 'じしゃくとコイルで、どうやって電気ができるのかを見てみよう。',
@@ -109,9 +105,9 @@ const generator: Plant = {
       ex: '太陽光発電は、光電池（太陽電池）が光を直接電気に変えます。ほかの発電所は、どれも何かの力で発電機を回しています。',
     },
   ],
-};
+});
 
-const thermal: Plant = {
+const thermal = station({
   id: 'thermal',
   name: '火力発電',
   lead: '石炭・石油・天然ガスを燃やした熱で、水蒸気をつくってタービンを回す。',
@@ -185,9 +181,9 @@ const thermal: Plant = {
       ex: '火力発電は、天気に関係なく発電できますが、燃料を燃やすときに、地球温暖化の原因になる二酸化炭素を多く出します。',
     },
   ],
-};
+});
 
-const hydro: Plant = {
+const hydro = station({
   id: 'hydro',
   name: '水力発電',
   lead: 'ダムにためた水が高いところから流れ落ちる力で、水車を回す。',
@@ -249,9 +245,9 @@ const hydro: Plant = {
       ex: '水力発電は二酸化炭素を出しませんが、大きなダムをつくれる場所は少なく、ダムをつくると川や森のようすが大きく変わります。',
     },
   ],
-};
+});
 
-const nuclear: Plant = {
+const nuclear = station({
   id: 'nuclear',
   name: '原子力発電',
   lead: 'ウラン燃料が核分裂するときの熱で、水蒸気をつくってタービンを回す。',
@@ -296,7 +292,7 @@ const nuclear: Plant = {
   control: { label: '制御棒の引きぬき', min: 0, max: 100, step: 10, value: 70, show: percent },
   output: (v) => clamp(v / 100),
   // 引きぬくほど上へ (0% でいちばん下)
-  vars: (v) => ({ '--rods': `${r1(60 - v * 0.6)}px` }),
+  vars: (v) => ({ '--rods': `${round1(60 - v * 0.6)}px` }),
   energy: ['ウラン燃料のエネルギー', '核分裂の熱', '水蒸気の動き（タービンの回転）', '電気'],
   compare: { fuel: 'ウラン', co2: 'ほとんど出さない', weather: '受けない' },
   merits: ['発電するときに二酸化炭素をほとんど出さない', '少しの燃料で、たくさんの電気をつくれる', '天気や昼夜に関係なく発電できる'],
@@ -321,9 +317,9 @@ const nuclear: Plant = {
       ex: '原子力発電は発電するときに二酸化炭素をほとんど出しませんが、使用ずみ燃料が長い間放射線を出しつづけるので、その処分が課題です。事故が起こると、大きなひ害が出ます。',
     },
   ],
-};
+});
 
-const wind: Plant = {
+const wind = station({
   id: 'wind',
   name: '風力発電',
   lead: '風で大きな羽根を回し、その回転で発電機を回す。',
@@ -386,9 +382,9 @@ const wind: Plant = {
       ex: '風力発電は二酸化炭素を出しませんが、風の強さによって発電量が大きく変わります。',
     },
   ],
-};
+});
 
-const geothermal: Plant = {
+const geothermal = station({
   id: 'geothermal',
   name: '地熱発電',
   lead: '地下のマグマの熱で熱くなった蒸気をとり出して、タービンを回す。',
@@ -456,9 +452,9 @@ const geothermal: Plant = {
       ex: '地熱発電は、太陽光や風力とちがって、天気や昼夜に関係なく、1年中安定して発電できます。',
     },
   ],
-};
+});
 
-const solar: Plant = {
+const solar = station({
   id: 'solar',
   name: '太陽光発電',
   lead: '光電池（太陽電池）が、太陽の光を直接電気に変える。',
@@ -523,22 +519,8 @@ const solar: Plant = {
       ex: '太陽光発電は二酸化炭素を出しませんが、光がないと発電できないので、夜や雨の日は発電量が大きくへります。',
     },
   ],
-};
+});
 
-function r1(n: number): number {
-  return Math.round(n * 10) / 10;
-}
 
 /** はじめに + 6 つの発電所 (一覧にならべる順) */
-export const PLANTS: readonly Plant[] = [generator, thermal, hydro, nuclear, wind, geothermal, solar];
-
-export const plantById = (id: string): Plant | undefined => PLANTS.find((p) => p.id === id);
-
-/** #/power/<id>/<step> を読む。step は 1 から。はんいの外なら 1 ステップ目 */
-export function parsePowerHash(hash: string): { id: PlantId; step: number } | null {
-  const m = hash.match(/^#\/power\/([a-z]+)(?:\/(\d+))?$/);
-  const plant = m && plantById(m[1]);
-  if (!plant) return null;
-  const n = Number(m[2] ?? 1);
-  return { id: plant.id, step: n >= 1 && n <= plant.steps.length ? n - 1 : 0 };
-}
+export const PLANTS: readonly Station[] = [generator, thermal, hydro, nuclear, wind, geothermal, solar];

@@ -1,6 +1,6 @@
 import { shuffle } from '../core/rng';
-import { plantFig, plantParts, type PlantId } from '../diagrams/power';
-import { PLANTS } from '../power/plants';
+import { plantFig, plantParts, type PlantId } from '../learn/figs/power';
+import { PLANTS } from '../learn/power';
 import { choice, fixed, KANA, oneOf, pick, type Draft, type Gen } from './helpers';
 
 // 発電所の問題 (6 年生むけ)。どの問題にも、解説の画面へのリンク (learn) をつける。

@@ -2,7 +2,7 @@ import { dailyQuestions } from '../core/daily';
 import { CATEGORY_LABEL, type Level, type Question } from '../core/quiz';
 import { loadAnswers, saveAnswers } from '../core/storage';
 import { figure, h, homeButton, mark, paragraphs, withRuby } from './dom';
-import { powerHref } from './power';
+import { learnHref } from '../learn/href';
 import { renderResult } from './result';
 import { LEVEL_LABEL } from './text';
 
@@ -79,7 +79,7 @@ export function renderQuiz(root: HTMLElement, level: Level, today: string): () =
         h('p', { class: 'feedback-title' }, ok ? '正解！' : 'ざんねん…'),
         ...(ok ? [] : [h('p', { class: 'feedback-answer' }, '正解は ', withRuby('b', '', q.choices[q.answer]))]),
         paragraphs('explain', q.explanation),
-        ...(q.learn ? [h('p', { class: 'learn-more' }, h('a', { href: powerHref(q.learn) }, '発電所のしくみを図で見る ›'))] : []),
+        ...(q.learn ? [h('p', { class: 'learn-more' }, h('a', { href: learnHref(q.learn) }, '図でしくみを見る ›'))] : []),
         h('div', { class: 'feedback-actions' }, next),
       );
       steps.replaceWith((steps = progress(questions, answers, index)));

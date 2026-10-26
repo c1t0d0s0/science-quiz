@@ -1,45 +1,9 @@
-import { circle, ellipse, fig, line, path, polygon, polyline, r, rect, tag, text } from './svg';
+import { circle, ellipse, line, path, polygon, polyline, r, rect, text } from '../../diagrams/svg';
+import { buildFig, bulb, planParts, spin, type Flow, type Part, type Plan } from './common';
 
-// 発電所のしくみの図。部品には data-part、流れ (水蒸気・水・電気など) には data-flow をつける。
-// 「発電所のしくみ」の画面では、styles.css の .power-stage の中で、部品を光らせたり、回したり、流したりする。
-// 動きの速さや明るさは、画面が CSS の変数 (--out・--dur・--rods・--tilt) で決める。問題の図では動かない
+// 発電所の図。動きの速さや明るさは CSS の変数 (--out・--dur・--rods・--tilt) で決める
 
 export type PlantId = 'generator' | 'thermal' | 'hydro' | 'nuclear' | 'wind' | 'geothermal' | 'solar';
-
-interface Part {
-  id: string;
-  name: string;
-  /** 光らせるときの四角 [x, y, はば, 高さ] */
-  box: [number, number, number, number];
-  /** 問題の図で、記号の丸から指す点 */
-  anchor: [number, number];
-  /** 名前を書く位置 */
-  label: [number, number];
-  body: string;
-}
-
-interface Flow {
-  id: string;
-  d: string;
-  /** 管 (パイプ) の中を流れるもの */
-  pipe?: boolean;
-}
-
-interface Plan {
-  width: number;
-  height: number;
-  alt: string;
-  /** 部品より下にかくもの (地面・水など) */
-  back: string;
-  parts: Part[];
-  flows: Flow[];
-}
-
-/** 回る部品。(x, y) を中心に回す */
-const spin = (x: number, y: number, body: string) => `<g class="spin" style="transform-origin:${r(x)}px ${r(y)}px">${body}</g>`;
-
-/** 電球と、そのまわりの光 (明るさは --out) */
-const bulb = (x: number, y: number) => circle(x, y, 16, 'glow') + circle(x, y, 9, 'box') + path(`M${x - 4} ${y + 9}V${y + 15}H${x + 4}V${y + 9}`, 'ln thin');
 
 /** タービン。name は「タービン」か「水車」 */
 function turbine(tx: number, ty: number, name: string): Part {
@@ -458,7 +422,8 @@ function handGenerator(): Plan {
   };
 }
 
-const PLANS: Record<PlantId, () => Plan> = {
+/** 発電所の図の組み立て方 */
+export const PLANS: Record<PlantId, () => Plan> = {
   generator: handGenerator,
   thermal,
   hydro,
@@ -468,29 +433,8 @@ const PLANS: Record<PlantId, () => Plan> = {
   solar,
 };
 
+/** 発電所の図 (問題の図でも使う) */
+export const plantFig = (id: PlantId, labels?: Record<string, string>) => buildFig(PLANS[id](), labels);
+
 /** 図の部品の id と名前 */
-export function plantParts(id: PlantId): { id: string; name: string }[] {
-  return PLANS[id]().parts.map((p) => ({ id: p.id, name: p.name }));
-}
-
-/** 図の流れの id */
-export function plantFlows(id: PlantId): string[] {
-  return [...new Set(PLANS[id]().flows.map((f) => f.id))];
-}
-
-/**
- * 発電所の図。labels を指定すると、部品の名前のかわりに記号の丸をつける (問題の図)。
- * そのときは、どの部品の名前も書かない
- */
-export function plantFig(id: PlantId, labels?: Record<string, string>): string {
-  const plan = PLANS[id]();
-  // 光らせる四角は、ほかの部品にかぶらないよう、部品より下にまとめてかく (地面や水はすけて見える)
-  const highlights = plan.parts.map((p) => `<g data-part="${p.id}">${rect(...p.box, 'hl', 8)}</g>`);
-  const parts = plan.parts.map((p) => {
-    const name = labels ? '' : text(p.label[0], p.label[1], p.name, { cls: 'small part-name' });
-    const mark = labels?.[p.id] ? tag(p.anchor[0], p.anchor[1], labels[p.id]) : '';
-    return `<g data-part="${p.id}">${p.body}${name}${mark}</g>`;
-  });
-  const flows = plan.flows.map((f) => (f.pipe ? path(f.d, 'pipe-track') : '') + `<path class="flow flow-${f.id}" data-flow="${f.id}" d="${f.d}"/>`);
-  return fig(plan.width, plan.height, plan.alt, plan.back, ...highlights, ...flows, ...parts);
-}
+export const plantParts = (id: PlantId) => planParts(PLANS[id]());
