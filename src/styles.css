@@ -1529,6 +1529,11 @@ rt {
   width: 100%;
 }
 
+.control-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
 .learn-controls {
   display: grid;
   gap: 0.6rem;
@@ -2097,6 +2102,144 @@ rt {
 .lid .only-lid,
 .gap .only-gap,
 .gap:not(.lid) .flow-smoke-bottom {
+  display: inline;
+}
+
+/* 植物 */
+.fig .leaf {
+  fill: #9bd97f;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.fig .leaf-zoom {
+  fill: #c8ebb4;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.fig .stem {
+  fill: none;
+  stroke: #4f9a3a;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.fig .dye {
+  fill: #d0463b;
+  opacity: 0.55;
+  stroke: none;
+  transition: transform 0.5s;
+}
+
+.fig .bag {
+  fill: #9cc9e8;
+  fill-opacity: 0.12;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+
+.fig .fog {
+  opacity: var(--fog, 0);
+  transition: opacity 0.5s;
+}
+
+.fig .drop {
+  fill: #3d8bd0;
+  stroke: none;
+}
+
+.fig .starch {
+  fill: #4b2f7a;
+  opacity: 0.85;
+}
+
+.fig .no-starch {
+  fill: #f3ecd2;
+}
+
+.fig .foil {
+  fill: #c6ccd3;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.fig .seed {
+  fill: #b98a5a;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.fig .cotton {
+  fill: var(--paper);
+  stroke: var(--muted);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+}
+
+.fig .cover {
+  fill: var(--ink);
+  opacity: 0.18;
+  stroke: none;
+}
+
+.fig .flow-water {
+  stroke: #3d8bd0;
+}
+
+.fig .flow-vapor {
+  stroke: #8f9aa6;
+}
+
+/* 水の通り道: 葉をとる・ふくろ */
+.fig .only-bag,
+.no-leaf .leaves {
+  display: none;
+}
+
+.bag .only-bag {
+  display: inline;
+}
+
+/* 光合成: 日光なし・アルミはく・ヨウ素液 (はじめは日光に当てて、まだ調べていない) */
+.fig .starch,
+.fig .no-starch,
+.fig .only-foil,
+.dark .sun,
+.dark .flow-light {
+  display: none;
+}
+
+.tested .leaf {
+  fill: #f3ecd2;
+}
+
+.tested:not(.dark) .starch,
+.tested.foil:not(.dark) .no-starch,
+.foil:not(.tested) .only-foil {
+  display: inline;
+}
+
+/* 発芽: 条件の切りかえ (はじめは水・空気・20℃・日光あり、肥料なし) */
+.fig .only-sink,
+.fig .only-cold,
+.fig .only-dark,
+.fig .only-cover,
+.fig .only-fert,
+.fig .sprout,
+.no-water .wet,
+.no-air .wet,
+.cold .only-warm,
+.dark .only-light {
+  display: none;
+}
+
+.no-air .only-sink,
+.cold .only-cold,
+.dark .only-dark,
+.dark .only-cover,
+.fert .only-fert,
+.sprout .sprout {
   display: inline;
 }
 

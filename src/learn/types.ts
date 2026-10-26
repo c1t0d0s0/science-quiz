@@ -15,6 +15,8 @@ export interface Step {
   parts: string[];
   /** 動かす流れ (図の data-flow) */
   flows: string[];
+  /** このステップを開いたときに切りかえる、操作の値 */
+  values?: Values;
 }
 
 /** 図を動かす操作。range はつまみ、toggle は 2 つの切りかえ、select はいくつかからえらぶ */

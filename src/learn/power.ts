@@ -275,6 +275,7 @@ const nuclear = station({
       text: '燃料の間にさしこむ「制御棒」で、核分裂の量を調節します。制御棒を深く入れると核分裂がへり、引きぬくとふえます。つまみで制御棒を動かしてみよう。\nいちばん下までさしこむと、原子炉を止めることができます。',
       parts: ['rods'],
       flows: ['steam', 'water', 'electric'],
+      values: { v: 30 },
     },
     {
       title: 'エネルギーの変わり方',
@@ -347,6 +348,7 @@ const wind = station({
       text: '風が強いほど、羽根は速く回り、たくさん電気をつくれます。風が弱すぎると回りません。\n台風のように風が強すぎるときは、こわれないように、羽根を止めます。つまみで風の強さを変えてみよう。',
       parts: ['blades', 'generator'],
       flows: ['wind', 'electric'],
+      values: { v: 20 },
     },
     {
       title: 'エネルギーの変わり方',
@@ -482,6 +484,7 @@ const solar = station({
       text: '光電池は、光が強いほど、また、光が垂直（直角）に当たるほど、たくさん電気をつくります。つまみで光の当たる角度を変えてみよう。\n夜や雨の日は、ほとんど発電できません。',
       parts: ['sun', 'panel'],
       flows: ['light', 'electric'],
+      values: { v: 40 },
     },
     {
       title: 'エネルギーの変わり方',

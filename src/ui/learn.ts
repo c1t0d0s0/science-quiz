@@ -182,6 +182,9 @@ export function renderGuide(root: HTMLElement, guide: Guide, first: number): () 
   const parts = [...svg.querySelectorAll<SVGGElement>('[data-part]')];
   const flows = [...svg.querySelectorAll<SVGPathElement>('[data-flow]')];
   const readouts = h('div', { class: 'readouts', 'aria-live': 'polite' });
+  const inputs = h('div', { class: 'control-list' });
+  /** 操作の入力を、今の値でかき直す (ステップで値が変わったとき) */
+  const drawInputs = () => inputs.replaceChildren(...guide.controls.map((c) => controlInput(c, values, update)));
   let shownClasses: string[] = [];
 
   /** 操作の値に合わせて、図のようすと表示を変える */
@@ -219,6 +222,11 @@ export function renderGuide(root: HTMLElement, guide: Guide, first: number): () 
   /** ステップに合わせて、光らせる部品と動かす流れを変える */
   function show(): void {
     const s = guide.steps[step];
+    if (s.values) {
+      Object.assign(values, s.values);
+      drawInputs();
+      update();
+    }
     parts.forEach((p) => p.classList.toggle('is-focus', s.parts.includes(p.dataset.part!)));
     flows.forEach((f) => f.classList.toggle('is-flow', s.flows.includes(f.dataset.flow!)));
     title.replaceChildren(withRuby('span', '', tx(s.title)));
@@ -256,7 +264,7 @@ export function renderGuide(root: HTMLElement, guide: Guide, first: number): () 
       h(
         'div',
         { class: 'learn-body' },
-        h('div', { class: 'learn-stage' }, fig, h('div', { class: 'learn-controls' }, ...guide.controls.map((c) => controlInput(c, values, update)), readouts)),
+        h('div', { class: 'learn-stage' }, fig, h('div', { class: 'learn-controls' }, inputs, readouts)),
         h(
           'section',
           { class: 'learn-guide', 'aria-labelledby': 'guide-title' },
@@ -279,6 +287,7 @@ export function renderGuide(root: HTMLElement, guide: Guide, first: number): () 
     ),
   );
 
+  drawInputs();
   update();
   show();
 

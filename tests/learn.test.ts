@@ -8,6 +8,7 @@ import { PLANTS } from '../src/learn/power';
 import { digestStage } from '../src/learn/body';
 import { flameSize, waterState } from '../src/learn/matter';
 import { period } from '../src/learn/physics';
+import { germinates } from '../src/learn/plants';
 import { initialValues, type Guide, type Values } from '../src/learn/types';
 import { analyze, fracText } from '../src/diagrams/circuit';
 import { upperEnergy, upperFigure, upperHow, upperMerit } from '../src/questions/power';
@@ -68,6 +69,20 @@ describe('図で学ぶしくみ', () => {
         }
         for (const x of Object.values(s.vars ?? {})) expect(x, g.id).not.toMatch(/NaN|undefined|Infinity/);
         if (s.speed !== undefined) expect(s.speed >= 0 && s.speed <= 1, g.id).toBe(true);
+      }
+    }
+  });
+
+  it('ステップで切りかえる値は、どれも操作にある値', () => {
+    for (const g of GUIDES) {
+      for (const st of g.steps) {
+        for (const [key, v] of Object.entries(st.values ?? {})) {
+          const c = g.controls.find((x) => x.key === key);
+          expect(c, `${g.id} ${st.title} ${key}`).toBeDefined();
+          if (c!.kind === 'range') expect(typeof v === 'number' && v >= c!.min && v <= c!.max && (v - c!.min) % c!.step === 0, `${g.id} ${key}`).toBe(true);
+          if (c!.kind === 'toggle') expect(typeof v, `${g.id} ${key}`).toBe('boolean');
+          if (c!.kind === 'select') expect(c!.options.map((o) => o.value), `${g.id} ${key}`).toContain(v);
+        }
       }
     }
   });
@@ -215,5 +230,32 @@ describe('熱・物質の解説の検算', () => {
     }
     // ふたをして火が消えても、酸素はなくならない
     expect(readout('burning', { lid: true, gap: false, sec: 30 }, 'びんの中の酸素')).toBe('約17%');
+  });
+});
+
+describe('植物の解説の検算', () => {
+  it('発芽: 水・空気・ちょうどよい温度の 3 つがそろったときだけ発芽する (日光と肥料は関係ない)', () => {
+    for (const water of [true, false])
+      for (const air of [true, false])
+        for (const warm of [true, false])
+          for (const light of [true, false])
+            for (const fert of [true, false]) {
+              const result = readout('germination', { water, air, warm, light, fert }, '発芽');
+              // 水にしずめるときは、水はある
+              expect(result).toBe(germinates({ water: water || !air, air, warm }) ? '発芽する' : '発芽しない');
+            }
+    expect(germinates({ water: true, air: true, warm: true })).toBe(true);
+    expect(germinates({ water: true, air: false, warm: true })).toBe(false);
+  });
+
+  it('光合成: 日光が当たったところだけ、ヨウ素液が青むらさき色になる', () => {
+    expect(readout('photosynthesis', { sun: true, test: true }, '日光が当たったところ')).toMatch(/青むらさき/);
+    expect(readout('photosynthesis', { sun: false, test: true }, '日光が当たったところ')).toMatch(/変わらない/);
+    expect(readout('photosynthesis', { sun: true, foil: true, test: true }, 'おおったところ')).toMatch(/変わらない/);
+  });
+
+  it('水の通り道: 葉があると、色水が多くへる', () => {
+    const ml = (leaf: boolean) => Number(readout('waterpath', { h: 4, leaf }, 'へった色水').match(/[\d.]+/)![0]);
+    expect(ml(true)).toBeGreaterThan(ml(false));
   });
 });
