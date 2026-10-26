@@ -91,6 +91,12 @@ export function renderHome(root: HTMLElement): void {
             h('a', { class: 'btn', href: '#/cards' }, REWARD.cardsTitle),
           ),
         ),
+        h(
+          'a',
+          { class: 'learn-link', href: '#/power' },
+          h('span', { class: 'learn-title' }, '発電所のしくみ'),
+          h('span', { class: 'learn-note' }, '6年生「電気の利用」。火力・水力・原子力・風力・地熱・太陽光の発電所を、図を動かして学ぼう'),
+        ),
       ),
       h(
         'aside',

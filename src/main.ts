@@ -2,8 +2,10 @@ import './styles.css';
 import { restoreStore, startCloud } from './cloud';
 import { jstDate } from './core/date';
 import type { Level } from './core/quiz';
+import { parsePowerHash } from './power/plants';
 import { renderCards } from './ui/cards';
 import { renderHome } from './ui/home';
+import { renderPowerList, renderPowerPage } from './ui/power';
 import { renderQuiz } from './ui/quiz';
 import { renderStamps } from './ui/stamps';
 import { ACCOUNT } from './ui/text';
@@ -22,7 +24,11 @@ function route(): void {
 
   // #/quiz/g3 は 3 年生むけ … #/quiz/g6 は 6 年生むけ
   const match = location.hash.match(/^#\/quiz\/(g[3-6])$/);
+  // #/power は発電所のしくみの一覧、#/power/thermal/3 は火力発電の解説の 3 ステップ目
+  const power = parsePowerHash(location.hash);
   if (match) cleanup = renderQuiz(app, match[1] as Level, shownDate);
+  else if (power) cleanup = renderPowerPage(app, power.id, power.step);
+  else if (location.hash.startsWith('#/power')) renderPowerList(app);
   else if (location.hash === '#/cards') renderCards(app);
   else if (location.hash === '#/stamps') renderStamps(app);
   else renderHome(app);
