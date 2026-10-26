@@ -10,6 +10,7 @@ const DAYS = 400;
 const MAX_REPEAT: Record<Level, number> = { g3: 0.12, g4: 0.11, g5: 0.1, g6: 0.08 };
 
 describe('今日の 10 問', () => {
+  // 全部のジェネレーターを何百回も動かすので、時間がかかる
   it('どの日も 10 問で、分野が重ならない', () => {
     for (const level of LEVELS) {
       for (let i = 0; i < DAYS; i++) {
@@ -24,7 +25,7 @@ describe('今日の 10 問', () => {
         qs.forEach((q) => assertValid(q, `${date} ${level} ${q.id}`));
       }
     }
-  });
+  }, 30_000);
 
   it('分野の輪には、16 の分野が 1 回ずつ入っている', () => {
     expect([...CATEGORY_RING].sort()).toEqual([...CATEGORIES].sort());

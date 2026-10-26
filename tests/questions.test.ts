@@ -29,6 +29,7 @@ describe('問題のジェネレーター', () => {
     expect(new Set(ALL.map((g) => g.id)).size).toBe(ALL.length);
   });
 
+  // 全部のジェネレーターを何百回も動かすので、時間がかかる
   it('どのジェネレーターも、どんな乱数でも正しい形の問題を作る', () => {
     for (const gen of ALL) {
       const seen = new Set<string>();
@@ -40,7 +41,7 @@ describe('問題のジェネレーター', () => {
       // 毎日同じ問題にならないよう、いくつかの出し方がある
       expect(seen.size, gen.id).toBeGreaterThanOrEqual(3);
     }
-  });
+  }, 30_000);
 });
 
 // 計算問題の正解を、ジェネレーターとは別の式でたしかめる
