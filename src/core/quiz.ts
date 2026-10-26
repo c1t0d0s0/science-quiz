@@ -82,4 +82,6 @@ export interface Question {
   /** 正解の位置 (choices の何番目か) */
   answer: number;
   explanation: string;
+  /** 「しくみを見る」で開く、発電所の解説の id */
+  learn?: string;
 }

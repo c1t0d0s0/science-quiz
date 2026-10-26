@@ -1,5 +1,6 @@
 import { pyramidFig } from '../diagrams/biology';
 import { upperChain, upperPlankton } from './animals';
+import { upperMerit } from './power';
 import { choice, facts, forGrades, oneOf, pick, type Entry, type Gen } from './helpers';
 
 const lowerHabitat = facts('eco-l-habitat', [
@@ -446,4 +447,5 @@ export const ECO: Entry[] = [
   forGrades(upperFungi, 5, 6),
   forGrades(upperChain, 6),
   forGrades(upperBalance, 6),
+  forGrades(upperMerit, 6),
 ];

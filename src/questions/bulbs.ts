@@ -13,6 +13,7 @@ import {
   type Wiring,
 } from '../diagrams/circuit';
 import { choice, facts, fixed, forGrades, KANA, numeric, oneOf, pick, sample, type Entry, type Fact, type Gen } from './helpers';
+import { upperEnergy, upperFigure, upperHow } from './power';
 import { lowerGalvano } from './tools';
 
 const one: Circuit = { cells: 1, cellMode: 's', bulbs: 1, bulbMode: 's' };
@@ -604,4 +605,7 @@ export const BULBS: Entry[] = [
   forGrades(upperMixed, 6),
   forGrades(upperSensor, 6),
   forGrades(upperSaving, 6),
+  forGrades(upperHow, 6),
+  forGrades(upperFigure, 6),
+  forGrades(upperEnergy, 6),
 ];

@@ -2,7 +2,7 @@ import type { Question } from '../core/quiz';
 import { shuffle, type Rng } from '../core/rng';
 
 /** ジェネレーターが返すもの (カテゴリーなどは、あとで daily.ts がつける) */
-export type Draft = Pick<Question, 'text' | 'svg' | 'choices' | 'answer' | 'explanation'>;
+export type Draft = Pick<Question, 'text' | 'svg' | 'choices' | 'answer' | 'explanation' | 'learn'>;
 
 export interface Gen {
   id: string;
