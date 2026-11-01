@@ -87,21 +87,25 @@ function draw(level: Level, gen: Gen, uses: number): Draft {
  */
 export function dailyQuestions(date: string, level: Level): Question[] {
   const rng = rngFromString(`${date}:${level}`);
-  const ruby = withFurigana(level) ? addRuby : (s: string) => s;
   const questions: Question[] = Array.from({ length: DAILY_COUNT }, (_, i) => {
     const { category, turn } = slot(date, i);
     const { gen, uses } = pickGen(level, category, turn);
-    const q = draw(level, gen, uses);
-    return {
-      id: gen.id,
-      category,
-      text: ruby(q.text),
-      svg: q.svg,
-      choices: q.choices.map(ruby),
-      answer: q.answer,
-      explanation: ruby(q.explanation),
-      ...(q.learn || LEARN_FOR[gen.id] ? { learn: q.learn ?? LEARN_FOR[gen.id] } : {}),
-    };
+    return toQuestion(level, category, gen, draw(level, gen, uses));
   });
   return shuffle(questions, rng);
+}
+
+/** ジェネレーターが作った問題に、分野・ふりがな (3・4 年生むけ)・解説へのリンクをつける。たいせんでも使う */
+export function toQuestion(level: Level, category: Category, gen: Gen, q: Draft): Question {
+  const ruby = withFurigana(level) ? addRuby : (s: string) => s;
+  return {
+    id: gen.id,
+    category,
+    text: ruby(q.text),
+    svg: q.svg,
+    choices: q.choices.map(ruby),
+    answer: q.answer,
+    explanation: ruby(q.explanation),
+    ...(q.learn || LEARN_FOR[gen.id] ? { learn: q.learn ?? LEARN_FOR[gen.id] } : {}),
+  };
 }

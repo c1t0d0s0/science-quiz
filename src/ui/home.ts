@@ -2,6 +2,7 @@ import { dailyCategories, dailyQuestions } from '../core/daily';
 import { jstDate } from '../core/date';
 import { CATEGORY_LABEL, FIELDS, LEVELS, type Level } from '../core/quiz';
 import { balance, currentStreak, isDone, loadAnswers, pruneOld, score } from '../core/storage';
+import { battleAvailable } from '../cloud/config';
 import { accountBox } from './account';
 import { h, hanamaru } from './dom';
 import { shiba } from './shiba';
@@ -97,6 +98,15 @@ export function renderHome(root: HTMLElement): void {
           h('span', { class: 'learn-title' }, '図で学ぶ しくみ'),
           h('span', { class: 'learn-note' }, 'てこ・ふりこ・回路、血液や消化、もののあたたまり方、植物のはたらき、発電所などを、図を動かして学ぼう'),
         ),
+        // Realtime Database の設定があるビルドだけ
+        battleAvailable
+          ? h(
+              'a',
+              { class: 'learn-link battle-link', href: '#/battle' },
+              h('span', { class: 'learn-title' }, '理科たいせん'),
+              h('span', { class: 'learn-note' }, 'ともだちと 2〜8人で、学年のレベルに合わせた問題を早おし。早く正解した人が、その問題をとれるよ'),
+            )
+          : null,
       ),
       h(
         'aside',

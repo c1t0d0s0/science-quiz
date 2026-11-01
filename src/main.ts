@@ -25,8 +25,11 @@ function route(): void {
   const match = location.hash.match(/^#\/quiz\/(g[3-6])$/);
   // #/learn は図で学ぶしくみの一覧、#/learn/thermal/3 は火力発電の解説の 3 ステップ目 (前の #/power/… も同じ)
   const learn = parseLearnHash(location.hash);
+  // #/battle は理科たいせんの入口、#/battle/12345 は招待の URL
+  const battle = location.hash.match(/^#\/battle(?:\/(\d{5}))?\/?$/);
   if (match) cleanup = renderQuiz(app, match[1] as Level, shownDate);
   else if (learn) void showLearn(learn.id, learn.step);
+  else if (battle) void showBattle(battle[1] ?? null);
   else if (location.hash === '#/cards') renderCards(app);
   else if (location.hash === '#/stamps') renderStamps(app);
   else renderHome(app);
@@ -43,10 +46,22 @@ async function showLearn(id: string | null, step: number): Promise<void> {
   window.scrollTo(0, 0);
 }
 
+/** 理科たいせんの画面も、開くときにはじめて読みこむ */
+async function showBattle(code: string | null): Promise<void> {
+  const hash = location.hash;
+  const { renderBattle } = await import('./ui/battle');
+  if (location.hash !== hash) return;
+  cleanup = renderBattle(app, code);
+  window.scrollTo(0, 0);
+}
+
+/** たいせん中は、かき直すと部屋から出てしまうので、記録の取りこみや日付の変わり目でかき直さない */
+const inBattle = () => location.hash.startsWith('#/battle');
+
 window.addEventListener('hashchange', route);
 // 画面を開いたまま日付が変わっていたら、もどってきたときにホームを新しい日の問題にする
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && shownDate !== jstDate() && !location.hash.startsWith('#/quiz/')) route();
+  if (document.visibilityState === 'visible' && shownDate !== jstDate() && !location.hash.startsWith('#/quiz/') && !inBattle()) route();
 });
 route();
 
@@ -57,6 +72,8 @@ void startCloud({
     if (app.querySelector('.home')) renderHome(app);
   },
   // Firestore から取りこんで、手元の記録が変わった。今の画面をかき直す
-  onData: () => route(),
+  onData: () => {
+    if (!inBattle()) route();
+  },
   askMigrate: () => confirm(ACCOUNT.askMigrate),
 });

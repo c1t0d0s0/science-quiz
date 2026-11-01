@@ -42,6 +42,10 @@
   発電所には、エネルギーの変わり方、よいところと課題、発電所をくらべる表もあります。
   今日の10問で、てこ・ふりこ・回路・血液・消化・呼吸・あたたまり方・水のすがた・燃焼・蒸散・光合成・発芽・発電所の問題を出したときは、
   解説の下の「図でしくみを見る」から、その解説へ行けます (`src/learn/related.ts`)
+- **理科たいせん** (`#/battle`): ともだちと 2〜8 人で、同じ問題を早おしで答えます。部屋を作った人 (ホスト) が学年のレベル (3〜6 年生むけ) と問題の数 (5・10・20 問) をえらび、
+  その学年のジェネレーターから、分野がなるべく重ならないように問題を作ります。いちばん早く正解した人がその問題をとり、まちがえると「おてつき」でその問題はお休み。
+  とった数、同じならおてつきの少なさで順位をつけ、最後に全部の問題の解説を見直せます。部屋には 5 けたのたいせんコード・QR コード・招待の URL (`#/battle/12345`) で入ります。
+  kanji-quiz の意味かるた たいせん と同じしくみで、Firebase Realtime Database を使います (下の「理科たいせん の設定」)
 - **同じ日は同じ問題**: 日本時間の日付とレベルから乱数の種を作るので、いつ・どの端末で開いても同じ 10 問になります。日付が変わると新しい問題になります
 - **最近出た問題はなるべく出さない**: 分野ごとにジェネレーターを順番に回し (同じものはつづけて出ない)、1 つのジェネレーターの中でも、作れる問題を最大 12 個の「デッキ」にして、出し終わるまで同じ問題は出しません。30 日以内にまったく同じ問題が出る割合は、どの学年も 1 割くらいです
 - **図つき**: 回路図、てこ、かっ車、月の形などの図は、問題の数値に合わせてその場で SVG としてかきます (画像ファイルは使いません)
@@ -137,14 +141,41 @@ users/{uid}/apps/science-quiz/progress/{日付:レベル}  その日の途中経
 ログインに失敗すると、ボタンの下に Firebase のエラーの名前 (`auth/unauthorized-domain` など) が出ます。
 `auth/unauthorized-domain` のときは、公開先のドメインが承認済みドメインに入っているかをたしかめてください。
 
+### 理科たいせん の設定 (Realtime Database)
+
+上の 4 つに加えて `FIREBASE_DATABASE_URL` (`https://<プロジェクト>-default-rtdb.<地域>.firebasedatabase.app` など) を入れると、ホームに「理科たいせん」が出ます。
+入れなければ、たいせんの入口は出ません。
+
+- 手元は `config.js` に、GitHub Pages はリポジトリの Variables に `FIREBASE_DATABASE_URL` を足す
+- Firebase コンソールで Realtime Database を作り、`database.rules.json` のルールを入れる (`npx firebase-tools deploy --only database`)
+- Authentication で「匿名」のログインを有効にする。Google でログインしていない人は、たいせんのときだけ匿名でログインします
+  (匿名のログインは「ログインしていない」としてあつかうので、記録は今までどおり端末だけに残ります)
+- 部屋は `scienceBattles/{コード}` に入ります。同じ Firebase プロジェクトを kanji-quiz (`kanjiBattles`) などと共有しても、部屋はまざりません。
+  1 日より古い部屋は、新しい部屋で上書きされます
+
+```
+scienceBattles/{code}                 code = 0 で始まらない 5 けたの数
+  app: 'science-quiz', hostUid, createdAt, grade: 3..6, count: 5 | 10 | 20, version
+  round, seed, status: 'waiting' | 'playing' | 'finished', startAt, q, qAt
+  players/{seat}: { uid, name, joinedAt, online }      seat = 0..7
+  takes/{q}: { seat, round, at }                       いちばん早く正解した人
+  faults/{q}/{seat}: true                              おてつき
+```
+
+問題は部屋の種 (seed) から、どの端末でも同じものを作ります。ジェネレーターを変えると印 (`version`) が変わり、
+古いページの人には読みこみ直してもらいます (`src/core/battle.ts` の `dataVersion`)。
+
 ### エミュレーターで動かす (開発用)
 
 本物の Firebase を使わずに、手元でログインと保存をためせます (Java が必要)。
 
 ```sh
-npx firebase-tools emulators:start --only auth,firestore --project demo-science-quiz
-FIREBASE_API_KEY=x FIREBASE_AUTH_DOMAIN=localhost FIREBASE_PROJECT_ID=demo-science-quiz FIREBASE_APP_ID=x FIREBASE_EMULATOR=1 npm run dev
+npx firebase-tools emulators:start --only auth,firestore,database --project demo-science-quiz
+FIREBASE_API_KEY=x FIREBASE_AUTH_DOMAIN=localhost FIREBASE_PROJECT_ID=demo-science-quiz FIREBASE_APP_ID=x \
+  FIREBASE_DATABASE_URL=https://demo-science-quiz-default-rtdb.firebaseio.com FIREBASE_EMULATOR=1 npm run dev
 ```
+
+たいせんは、ふつうのウィンドウとシークレットウィンドウなど、べつべつのブラウザで開くと 2 人でためせます。
 
 エミュレーターには Google のログイン画面がないので、ブラウザのコンソールで `window.__testUser = 'kid1'` としてからログインのボタンをおします。
 
@@ -164,8 +195,10 @@ FIREBASE_API_KEY=x FIREBASE_AUTH_DOMAIN=localhost FIREBASE_PROJECT_ID=demo-scien
 | `src/core/rewards.ts` | スタンプとポイントの計算 |
 | `src/data/cards.ts` | 柴犬カードの一覧と値段 |
 | `src/ui/*.ts` | ホーム・問題・結果・スタンプカード・柴犬カードの画面、柴犬の絵 (`shiba.ts`) |
-| `src/cloud/` | ログインと Firestore との同期 (Firebase に依存するのは `firebase.ts` だけ) |
-| `tests/` | 400 日分の出題の確認、計算問題の検算、記録の合わせ方と同期 |
+| `src/core/battle.ts` | 理科たいせんのきまり (問題の作り方・時間・順位)。通信も画面もさわらない |
+| `src/ui/battle.ts` | 理科たいせんの画面 (開くときにはじめて読みこむ) |
+| `src/cloud/` | ログインと Firestore との同期 (`firebase.ts`)、理科たいせんの通信 (`battle-net.ts`)。Firebase のアプリは `app.ts` で 1 つを使う |
+| `tests/` | 400 日分の出題の確認、計算問題の検算、記録の合わせ方と同期、たいせんのきまり |
 
 ### 問題を足すには
 

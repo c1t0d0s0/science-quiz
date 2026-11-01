@@ -2322,3 +2322,299 @@ rt {
   font-weight: 700;
   font-size: 0.9375rem;
 }
+
+/* ---- 理科たいせん ---- */
+.battle-box {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+.battle-box h2 {
+  font-size: 1.125rem;
+}
+
+.battle-label {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.battle-hint {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.battle-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.0625rem;
+}
+
+.battle-code-input {
+  font-family: var(--hand);
+  font-weight: 600;
+  font-size: 1.375rem;
+  letter-spacing: 0.15em;
+}
+
+.battle-url {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.battle-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.battle-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.4rem;
+}
+
+.battle-segs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.battle-seg {
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.battle-seg[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--mark);
+  color: var(--ink);
+}
+
+.battle-seg:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.battle-msg {
+  min-height: 1.5em;
+  color: var(--red);
+  font-weight: 700;
+}
+
+.battle-msg:empty {
+  display: none;
+}
+
+.battle-invite {
+  justify-items: center;
+  text-align: center;
+}
+
+.battle-invite .battle-row {
+  width: 100%;
+}
+
+.battle-code {
+  font-family: var(--hand);
+  font-weight: 600;
+  font-size: clamp(2.5rem, 14vw, 3.5rem);
+  letter-spacing: 0.2em;
+  line-height: 1.2;
+  padding-left: 0.2em;
+}
+
+.battle-qr {
+  width: min(12rem, 60vw);
+  height: auto;
+  box-shadow: 0 0 0 1px var(--rule-soft);
+}
+
+.battle-setting {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.battle-setting-text {
+  font-weight: 700;
+  font-size: 1.0625rem;
+}
+
+.battle-players {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.battle-player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.7rem;
+  background: var(--bg);
+}
+
+.battle-player-name {
+  font-weight: 700;
+}
+
+.battle-player.is-away {
+  color: var(--muted);
+}
+
+.battle-away {
+  font-size: 0.8125rem;
+}
+
+.battle-scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.battle-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.15rem 0.35rem 0.15rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.battle-score.is-me {
+  border-color: var(--ink);
+  background: var(--mark-soft);
+}
+
+.battle-score.is-away {
+  opacity: 0.55;
+}
+
+.battle-score-name {
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-score-num {
+  display: grid;
+  place-items: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--on-ink);
+  font-family: var(--hand);
+  line-height: 1;
+}
+
+.battle-of {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.battle-timer {
+  margin-left: auto;
+  min-width: 2.5rem;
+  font-family: var(--hand);
+  font-weight: 600;
+  font-size: 1.5rem;
+  line-height: 1;
+  text-align: right;
+}
+
+.battle-timer.is-low {
+  color: var(--red);
+}
+
+.battle-card .choice-picked {
+  background: var(--mark-soft);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.battle-count {
+  padding-top: 2rem;
+  font-family: var(--hand);
+  font-weight: 600;
+  font-size: 5rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.battle-count-note {
+  padding: 1rem 0 2rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.battle-standings {
+  display: grid;
+  gap: 1px;
+  margin-top: 0.5rem;
+  background: var(--rule);
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+.battle-standing {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.9rem;
+  background: var(--paper);
+}
+
+.battle-standing.is-me {
+  background: var(--mark-soft);
+}
+
+.battle-standing.is-away {
+  color: var(--muted);
+}
+
+.battle-rank {
+  font-family: var(--hand);
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.battle-standing.is-top .battle-rank {
+  color: var(--red);
+}
+
+.battle-standing-name {
+  font-weight: 700;
+}
+
+.battle-standing-num b {
+  font-family: var(--hand);
+  font-size: 1.375rem;
+  margin-right: 0.1em;
+}
+
+.battle-standing-faults {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
