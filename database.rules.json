@@ -16,6 +16,10 @@
           ".write": "auth != null && data.parent().child('hostUid').val() === auth.uid && data.parent().child('status').val() === 'waiting'",
           ".validate": "newData.val() === 5 || newData.val() === 10 || newData.val() === 20"
         },
+        "cats": {
+          ".write": "auth != null && data.parent().child('hostUid').val() === auth.uid && data.parent().child('status').val() === 'waiting'",
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 65535 && newData.val() % 1 === 0"
+        },
         "version": { ".validate": "newData.isString() && newData.val().length <= 40" },
         "round": {
           ".write": "auth != null && data.parent().child('hostUid').val() === auth.uid",

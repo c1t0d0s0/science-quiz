@@ -5,6 +5,7 @@
 //
 // scienceBattles/{code}                 code = 0 で始まらない 5 けたの数
 //   app: 'science-quiz', hostUid, createdAt, grade: 3..6, count: 5 | 10 | 20, version
+//   cats: 出す分野 (CATEGORIES の順に 1 ビットずつ。ないときは全部)
 //   round: 1, 2, …                       「もう一度」で 1 つふえる
 //   seed, status: 'waiting' | 'playing' | 'finished', startAt
 //   q: 出している問題 (0 から), qAt: その問題を出す時刻 (サーバーの時刻)
@@ -12,7 +13,7 @@
 //   takes/{q}: { seat, round, at }                       いちばん早く正解した人
 //   faults/{q}/{seat}: true                              おてつき
 import { toQuestion } from './daily';
-import { CATEGORIES, GRADE, LEVELS, type Level, type Question } from './quiz';
+import { CATEGORIES, CATEGORY_LABEL, GRADE, LEVELS, type Category, type Level, type Question } from './quiz';
 import { GENERATORS } from '../questions';
 import { hashString, rngFromString, shuffle, type Rng } from './rng';
 
@@ -30,8 +31,28 @@ export const GRADES = LEVELS.map((level) => GRADE[level]);
  * 問題の作り方 (battleGame、乱数の使い方) や 1 問の時間を変えたら 1 つ上げる。
  * 古いページの人には、読みこみ直してもらう (ちがう問題を見たり、時間切れがずれたりするので)。
  * 2: 1 問の時間を 20 秒ふやした
+ * 3: 出す分野をえらべるようにした
  */
-export const RULES_VERSION = 2;
+export const RULES_VERSION = 3;
+
+/** 全部の分野 (cats の値) */
+export const ALL_CATS = (1 << CATEGORIES.length) - 1;
+
+/** 分野のならび → cats の値 */
+export const catsOf = (categories: readonly Category[]): number => categories.reduce((bits, c) => bits | (1 << CATEGORIES.indexOf(c)), 0);
+
+/** cats の値 → 分野のならび (CATEGORIES の順)。おかしな値なら全部 */
+export function categoriesOf(cats: number | undefined): Category[] {
+  const bits = Number.isInteger(cats) && cats! > 0 && cats! <= ALL_CATS ? cats! : ALL_CATS;
+  return CATEGORIES.filter((_, i) => bits & (1 << i));
+}
+
+/** 出す分野を短く言う (「すべての分野」「てこ・輪軸・かっ車」「5つの分野」) */
+export function catsLabel(cats: number | undefined): string {
+  const list = categoriesOf(cats);
+  if (list.length === CATEGORIES.length) return 'すべての分野';
+  return list.length <= 3 ? list.map((c) => CATEGORY_LABEL[c]).join('・') : `${list.length}つの分野`;
+}
 
 export interface Player {
   uid: string;
@@ -52,6 +73,8 @@ export interface Room {
   createdAt?: number;
   grade: number;
   count: number;
+  /** 出す分野 (ないときは全部) */
+  cats?: number;
   version?: string;
   round: number;
   seed: string;
@@ -107,31 +130,36 @@ export function cleanName(input: string): string {
 }
 
 /**
- * その回の問題。同じ学年・数・種なら、どの端末で作っても同じになる。
- * 16 の分野をまぜた順に 1 問ずつ出し (20 問なら 2 周目に入る)、分野の中のジェネレーターはつづけて同じものを使わない。
+ * その回の問題。同じ学年・数・分野・種なら、どの端末で作っても同じになる。
+ * えらんだ分野をまぜた順に 1 問ずつ出し (分野が少なければ何周もする)、分野の中のジェネレーターは、
+ * 全部を 1 回ずつ使い終わるまで同じものを使わない。同じ問題 (問題文と正解が同じもの) は 2 回出さない。
  */
-export function battleQuestions(level: Level, count: number, rng: Rng): Question[] {
-  const categories = shuffle(CATEGORIES, rng);
+export function battleQuestions(level: Level, count: number, rng: Rng, only: readonly Category[] = CATEGORIES): Question[] {
+  const categories = shuffle(only.length > 0 ? only : CATEGORIES, rng);
   const used = new Set<string>();
   const texts = new Set<string>();
   const questions: Question[] = [];
-  for (let i = 0; questions.length < count && i < count * 4; i++) {
+  for (let i = 0; questions.length < count && i < count * 20; i++) {
     const category = categories[i % categories.length];
-    const gens = GENERATORS[level][category].filter((g) => !used.has(g.id));
-    if (gens.length === 0) continue;
+    const all = GENERATORS[level][category];
+    // その分野のジェネレーターを全部使ったら、また 1 回ずつ使う
+    if (all.every((g) => used.has(g.id))) all.forEach((g) => used.delete(g.id));
+    const gens = all.filter((g) => !used.has(g.id));
     const gen = gens[Math.floor(rng() * gens.length)];
     used.add(gen.id);
     const q = toQuestion(level, category, gen, gen.make(rng));
-    if (texts.has(q.text)) continue;
-    texts.add(q.text);
+    // 同じ問題文でも、正解がちがえば別の問題 (「昆虫のなかまはどれ」など)
+    const key = `${q.text}|${q.choices[q.answer]}`;
+    if (texts.has(key)) continue;
+    texts.add(key);
     questions.push(q);
   }
   return questions;
 }
 
 /** 部屋の今の回の問題 */
-export function makeGame(room: Pick<Room, 'grade' | 'count' | 'seed' | 'round'>): Question[] {
-  return battleQuestions(levelOf(room), room.count, rngFromString(`${room.seed}:${room.round}`));
+export function makeGame(room: Pick<Room, 'grade' | 'count' | 'cats' | 'seed' | 'round'>): Question[] {
+  return battleQuestions(levelOf(room), room.count, rngFromString(`${room.seed}:${room.round}`), categoriesOf(room.cats));
 }
 
 /**

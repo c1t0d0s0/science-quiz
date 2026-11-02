@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as Battle from '../src/core/battle';
 import type { Room } from '../src/core/battle';
-import { LEVELS } from '../src/core/quiz';
+import { CATEGORIES, FIELDS, LEVELS } from '../src/core/quiz';
 import { rngFromString } from '../src/core/rng';
 
 const room = (over: Partial<Room> = {}): Room => ({
@@ -19,6 +19,39 @@ const room = (over: Partial<Room> = {}): Room => ({
   takes: {},
   faults: {},
   ...over,
+});
+
+describe('出す分野', () => {
+  it('分野のならびと cats の値は、行き来できる', () => {
+    expect(Battle.categoriesOf(Battle.ALL_CATS)).toEqual([...CATEGORIES]);
+    for (const f of FIELDS) expect(Battle.categoriesOf(Battle.catsOf(f.categories))).toEqual([...f.categories]);
+    // ない・おかしな値は全部
+    for (const bad of [undefined, 0, -1, 1.5, Battle.ALL_CATS + 1]) expect(Battle.categoriesOf(bad)).toEqual([...CATEGORIES]);
+  });
+
+  it('短い言い方', () => {
+    expect(Battle.catsLabel(undefined)).toBe('すべての分野');
+    expect(Battle.catsLabel(Battle.catsOf(['lever', 'pulley']))).toBe('てこ・輪軸・かっ車');
+    expect(Battle.catsLabel(Battle.catsOf(['plants', 'animals', 'body', 'eco']))).toBe('4つの分野');
+  });
+
+  it('えらんだ分野の問題だけを、分野が 1 つでも決めた数だけ出す', () => {
+    for (const level of LEVELS) {
+      for (const c of CATEGORIES) {
+        const qs = Battle.battleQuestions(level, 20, rngFromString(`${level}:${c}`), [c]);
+        expect(qs, `${level} ${c}`).toHaveLength(20);
+        expect(qs.every((q) => q.category === c)).toBe(true);
+        expect(new Set(qs.map((q) => `${q.text}|${q.choices[q.answer]}`)).size).toBe(20);
+      }
+    }
+  });
+
+  it('部屋の分野で問題を作る (分野がない部屋は全部)', () => {
+    const only = Battle.catsOf(['spring', 'motion']);
+    const qs = Battle.makeGame(room({ count: 10, cats: only }));
+    expect(qs.every((q) => q.category === 'spring' || q.category === 'motion')).toBe(true);
+    expect(Battle.makeGame(room({ cats: Battle.ALL_CATS }))).toEqual(Battle.makeGame(room()));
+  });
 });
 
 describe('たいせんの問題', () => {

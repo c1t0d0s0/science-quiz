@@ -1,12 +1,12 @@
 // --- 理科たいせん: 画面 ---
-// 入口 (なまえ・学年・問題の数・コード) → 待合室 (コード・QR コード・URL) → カウントダウン → 問題 → 結果。
+// 入口 (なまえ・学年・問題の数・分野・コード) → 待合室 (コード・QR コード・URL) → カウントダウン → 問題 → 結果。
 // どの画面も Realtime Database の部屋を見て作る。次の問題へ進めるのはホストだけ。
 // 開くときにはじめて読みこみ、Firebase のコードは、部屋を作るか入るときにはじめて読みこむ。
 import { battleAvailable } from '../cloud/config';
 import type { BattleNet, JoinResult } from '../cloud/battle-net';
 import * as Battle from '../core/battle';
 import type { Room } from '../core/battle';
-import { CATEGORY_LABEL, type Question } from '../core/quiz';
+import { CATEGORY_LABEL, FIELDS, type Question } from '../core/quiz';
 import { learnHref } from '../learn/href';
 import { figure, h, hanamaru, homeButton, mark, paragraphs, withRuby } from './dom';
 import { LEVEL_LABEL } from './text';
@@ -20,7 +20,7 @@ const gradeLabel = (grade: number) => LEVEL_LABEL[Battle.levelOf({ grade })];
 export const BATTLE_HOWTO = [
   '2〜8人で、同じ問題に同時にこたえます。いちばん早く正解をえらんだ人が、その問題をとれます。',
   'まちがえると「おてつき」で、その問題はお休み。とった問題が多い人の勝ち。同じ数なら、おてつきが少ない人が上です。',
-  '部屋を作った人（ホスト）が、学年と問題の数をえらびます。3年生むけから6年生むけまで、学年のレベルに合わせた問題が出ます。',
+  '部屋を作った人（ホスト）が、学年と問題の数と分野をえらびます。3年生むけから6年生むけまで、学年のレベルに合わせた問題が出ます。',
   '部屋を作ったら、たいせんコードかQRコードを、ともだちに見せよう。',
 ];
 
@@ -83,14 +83,15 @@ function saveName(name: string): void {
   }
 }
 
-function readSetting(): { grade: number; count: number } {
+function readSetting(): { grade: number; count: number; cats: number } {
   try {
-    const s = JSON.parse(localStorage.getItem(SETTING_KEY) || 'null') as { grade?: number; count?: number } | null;
+    const s = JSON.parse(localStorage.getItem(SETTING_KEY) || 'null') as { grade?: number; count?: number; cats?: number } | null;
     const grade = Battle.GRADES.includes(Number(s?.grade)) ? Number(s?.grade) : 3;
     const count = (Battle.COUNTS as readonly number[]).includes(Number(s?.count)) ? Number(s?.count) : 10;
-    return { grade, count };
+    const cats = Battle.catsOf(Battle.categoriesOf(Number(s?.cats)));
+    return { grade, count, cats };
   } catch {
-    return { grade: 3, count: 10 };
+    return { grade: 3, count: 10, cats: Battle.ALL_CATS };
   }
 }
 
@@ -139,6 +140,55 @@ function segmented(label: string, options: { value: number; text: string }[], cu
     ),
   );
   return h('div', { class: 'battle-segs', role: 'group', 'aria-label': label }, ...buttons);
+}
+
+/**
+ * 出す分野のえらび方。系統 (生物・地学・化学・物理) ごとに分野のボタンをならべ、系統の名前のボタンでまとめて切りかえる。
+ * 1 つものこらないえらび方はできない
+ */
+function catsPicker(current: number, onPick: (cats: number) => void): HTMLElement {
+  let cats = current;
+  const bit = (c: (typeof FIELDS)[number]['categories'][number]) => Battle.catsOf([c]);
+  const groupBits = FIELDS.map((f) => Battle.catsOf(f.categories));
+  const buttons: { el: HTMLButtonElement; bits: number; whole: boolean }[] = [];
+  const refresh = () =>
+    buttons.forEach((b) => b.el.setAttribute('aria-pressed', String(b.whole ? (cats & b.bits) === b.bits : (cats & b.bits) !== 0)));
+  const set = (next: number) => {
+    if (next === 0) {
+      say('分野は、どれか 1つは えらんでね');
+      return;
+    }
+    cats = next;
+    refresh();
+    onPick(cats);
+  };
+  const button = (text: string, bits: number, whole: boolean, cls: string) => {
+    const el = h(
+      'button',
+      {
+        type: 'button',
+        class: `battle-seg ${cls}`,
+        onclick: () => {
+          const on = whole ? (cats & bits) === bits : (cats & bits) !== 0;
+          set(on ? cats & ~bits : cats | bits);
+        },
+      },
+      text,
+    );
+    buttons.push({ el, bits, whole });
+    return el;
+  };
+  const all = button('ぜんぶ', Battle.ALL_CATS, true, 'battle-seg-all');
+  const groups = FIELDS.map((f, i) =>
+    h(
+      'div',
+      { class: 'battle-cats-group', role: 'group', 'aria-label': f.name },
+      button(f.name, groupBits[i], true, 'battle-seg-field'),
+      ...f.categories.map((c) => button(CATEGORY_LABEL[c], bit(c), false, 'battle-seg-cat')),
+    ),
+  );
+  refresh();
+  return h('div', { class: 'battle-cats', role: 'group', 'aria-label': '出す分野' }, h('div', { class: 'battle-segs' }, all), ...groups);
 }
 
 const gradeOptions = () => Battle.GRADES.map((grade) => ({ value: grade, text: gradeLabel(grade) }));
@@ -223,7 +273,7 @@ function showEntry(prefill = ''): void {
     if (!name) return;
     void run(async () => {
       const n = await connect();
-      enter(await n.create(setting.grade, setting.count, name));
+      enter(await n.create(setting.grade, setting.count, setting.cats, name));
     });
   };
 
@@ -272,6 +322,11 @@ function showEntry(prefill = ''): void {
         h('p', { class: 'battle-label' }, '問題の数'),
         segmented('問題の数', countOptions(), setting.count, (v) => {
           setting.count = v;
+          saveSetting();
+        }),
+        h('p', { class: 'battle-label' }, '出す分野'),
+        catsPicker(setting.cats, (v) => {
+          setting.cats = v;
           saveSetting();
         }),
         h('div', { class: 'battle-actions' }, h('button', { type: 'button', class: 'btn btn-primary', onclick: create }, '部屋を作る')),
@@ -376,16 +431,22 @@ function renderLobby(r: Room): void {
         segmented('学年のレベル', gradeOptions(), r.grade, (v) => {
           setting.grade = v;
           saveSetting();
-          void net?.configure(roomCode, v, r.count).catch((e) => console.error(e));
+          void net?.configure(roomCode, v, r.count, r.cats ?? Battle.ALL_CATS).catch((e) => console.error(e));
         }),
         h('p', { class: 'battle-label' }, '問題の数'),
         segmented('問題の数', countOptions(), r.count, (v) => {
           setting.count = v;
           saveSetting();
-          void net?.configure(roomCode, r.grade, v).catch((e) => console.error(e));
+          void net?.configure(roomCode, r.grade, v, r.cats ?? Battle.ALL_CATS).catch((e) => console.error(e));
+        }),
+        h('p', { class: 'battle-label' }, '出す分野'),
+        catsPicker(r.cats ?? Battle.ALL_CATS, (v) => {
+          setting.cats = v;
+          saveSetting();
+          void net?.configure(roomCode, r.grade, r.count, v).catch((e) => console.error(e));
         }),
       )
-    : h('p', { class: 'battle-setting-text' }, `${gradeLabel(r.grade)}・${r.count}問`);
+    : h('p', { class: 'battle-setting-text' }, `${gradeLabel(r.grade)}・${r.count}問・${Battle.catsLabel(r.cats)}`);
 
   const startButton = h(
     'button',

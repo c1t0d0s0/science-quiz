@@ -49,7 +49,7 @@ export interface BattleNet {
   uid: string;
   serverNow(): number;
   seatIn(code: string): string | null;
-  create(grade: number, count: number, name: string): Promise<string>;
+  create(grade: number, count: number, cats: number, name: string): Promise<string>;
   join(code: string, name: string): Promise<JoinResult>;
   watch(code: string, cb: (room: Room | null) => void): () => void;
   take(code: string, round: number, q: number): Promise<boolean>;
@@ -58,7 +58,7 @@ export interface BattleNet {
   advance(code: string, q: number): Promise<void>;
   end(code: string): Promise<void>;
   rematch(code: string, round: number): Promise<void>;
-  configure(code: string, grade: number, count: number): Promise<void>;
+  configure(code: string, grade: number, count: number, cats: number): Promise<void>;
   leave(code: string): Promise<void>;
 }
 
@@ -116,7 +116,7 @@ async function open(): Promise<BattleNet> {
     seatIn: (code) => mySeat.get(code) ?? null,
 
     // 部屋を作って、自分がすわる。もどり値は たいせんコード
-    async create(grade, count, name) {
+    async create(grade, count, cats, name) {
       for (let tries = 0; tries < 20; tries++) {
         const code = Battle.makeCode();
         const room = {
@@ -125,6 +125,7 @@ async function open(): Promise<BattleNet> {
           createdAt: serverTimestamp(),
           grade,
           count,
+          cats,
           version: Battle.dataVersion(),
           round: 1,
           seed: '',
@@ -219,9 +220,9 @@ async function open(): Promise<BattleNet> {
       await update(roomRef(code), { round: round + 1, status: 'waiting', seed: '', takes: null, faults: null });
     },
 
-    // ホストだけ: 待合室で、学年と問題の数を変える
-    async configure(code, grade, count) {
-      await update(roomRef(code), { grade, count });
+    // ホストだけ: 待合室で、学年・問題の数・分野を変える
+    async configure(code, grade, count, cats) {
+      await update(roomRef(code), { grade, count, cats });
     },
 
     // 部屋を出る。ホストが出たら部屋ごとなくなる
