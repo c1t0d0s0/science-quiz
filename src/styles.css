@@ -959,6 +959,22 @@ rt {
   stroke: var(--red);
 }
 
+/* 気温のグラフの 2 本目の点線と、目もりの線 */
+.fig .dash-long {
+  stroke-dasharray: 10 5;
+}
+
+.fig .grid-line {
+  stroke: var(--rule-soft);
+  stroke-width: 1.2;
+}
+
+/* 気温のグラフの 1 本目の点 */
+.fig .temp-dot {
+  fill: var(--red);
+  stroke: none;
+}
+
 .fig .ink {
   fill: var(--ink);
 }

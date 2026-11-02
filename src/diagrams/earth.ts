@@ -2,7 +2,7 @@ import { arrow, circle, fig, line, path, pointer, polygon, polyline, rect, tag, 
 
 /**
  * 1 日の気温の変化のグラフ。values は 午前6時から2時間ごと (6・8・…・18時) の気温。
- * 2 本目からは点線でかく。
+ * 1 本目は赤い実線と丸い点、2 本目は黒い点線と四角い点でかき、それぞれの線の右はしに記号をつける。
  */
 export function tempGraph(lines: { label: string; values: readonly number[] }[]): string {
   const hours = [6, 8, 10, 12, 14, 16, 18];
@@ -11,21 +11,36 @@ export function tempGraph(lines: { label: string; values: readonly number[] }[])
   const x = (h: number) => x0 + ((h - 6) / 12) * 250;
   const y = (t: number) => y0 - ((t - 5) / 25) * 150;
   const hourLabel = (h: number) => (h < 12 ? `午前${h}` : h === 12 ? '正午' : `午後${h - 12}`);
+  // 右はしの記号の高さ。2 本の右はしが近いときは、重ならないように上下にずらす
+  const ends = lines.map((l) => y(l.values[l.values.length - 1]));
+  if (ends.length === 2 && Math.abs(ends[0] - ends[1]) < 24) {
+    const mid = (ends[0] + ends[1]) / 2;
+    const up = ends[0] <= ends[1] ? 0 : 1;
+    ends[up] = mid - 12;
+    ends[1 - up] = mid + 12;
+  }
   return fig(
-    330,
+    344,
     222,
-    `1日の気温の変化のグラフ。${lines.map((l) => `${l.label}は、${hours.map((h, i) => `${h}時に${l.values[i]}℃`).join('、')}`).join('。')}。`,
+    `1日の気温の変化のグラフ。${lines.map((l, i) => `${l.label}は${i === 0 ? '赤い実線' : '黒い点線'}で、${hours.map((h, k) => `${h}時に${l.values[k]}℃`).join('、')}`).join('。')}。`,
     line(x0, 16, x0, y0, 'ln thin'),
     line(x0, y0, 312, y0, 'ln thin'),
-    ...[10, 15, 20, 25, 30].map((t) => line(x0, y(t), 312, y(t), 'ln thin dash') + text(x0 - 6, y(t) + 5, String(t), { anchor: 'end', cls: 'small' })),
+    // 目もりの線は、グラフの線とまちがえないよう、うすい実線にする
+    ...[10, 15, 20, 25, 30].map((t) => line(x0, y(t), 312, y(t), 'grid-line') + text(x0 - 6, y(t) + 5, String(t), { anchor: 'end', cls: 'small' })),
     text(x0 - 4, 12, '気温(℃)', { anchor: 'start', cls: 'small' }),
     ...hours.filter((h) => h % 6 === 0).map((h) => line(x(h), y0, x(h), y0 + 5, 'ln thin') + text(x(h), y0 + 19, hourLabel(h), { cls: 'small' })),
     text(312, y0 + 38, '時こく(時)', { anchor: 'end', cls: 'small' }),
+    // 上に、線の見本 (どの記号がどの線か)。右はしが同じ点になっても見分けられる
+    ...lines.map((l, i) => {
+      const lx = 150 + i * 86;
+      return tag(lx, 12, l.label) + line(lx + 16, 12, lx + 52, 12, i === 0 ? 'ln red' : 'ln dash-long') + (i === 0 ? circle(lx + 34, 12, 3.5, 'temp-dot') : rect(lx + 30.5, 8.5, 7, 7, 'ink'));
+    }),
     ...lines.map((l, i) => {
       const pts = hours.map((h, k): [number, number] => [x(h), y(l.values[k])]);
-      // 記号は、線のいちばん高いところの少し上につける
-      const top = pts.reduce((a, b) => (b[1] < a[1] ? b : a));
-      return polyline(pts, i === 0 ? 'ln red' : 'ln') + pts.map(([px, py]) => circle(px, py, 3, 'ink')).join('') + tag(top[0] + (i === 0 ? 0 : 60), top[1] - 16, l.label);
+      const marks = pts.map(([px, py]) => (i === 0 ? circle(px, py, 3.5, 'temp-dot') : rect(px - 3.5, py - 3.5, 7, 7, 'ink'))).join('');
+      const [ex, ey] = pts[pts.length - 1];
+      // 記号は、線の右はしのすぐ横 (ずらしたときは、右はしの点から線でつなぐ)
+      return polyline(pts, i === 0 ? 'ln red' : 'ln dash-long') + marks + line(ex + 4, ey, ex + 14, ends[i], 'ln thin') + tag(ex + 26, ends[i], l.label);
     }),
   );
 }
