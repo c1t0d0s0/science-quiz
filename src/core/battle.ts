@@ -27,10 +27,11 @@ export const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
 export const COUNTS = [5, 10, 20] as const;
 export const GRADES = LEVELS.map((level) => GRADE[level]);
 /**
- * 問題の作り方 (battleGame、乱数の使い方) を変えたら 1 つ上げる。
- * 古いページの人には、読みこみ直してもらう (ちがう問題を見てしまうので)。
+ * 問題の作り方 (battleGame、乱数の使い方) や 1 問の時間を変えたら 1 つ上げる。
+ * 古いページの人には、読みこみ直してもらう (ちがう問題を見たり、時間切れがずれたりするので)。
+ * 2: 1 問の時間を 20 秒ふやした
  */
-export const RULES_VERSION = 1;
+export const RULES_VERSION = 2;
 
 export interface Player {
   uid: string;
@@ -137,7 +138,7 @@ export function makeGame(room: Pick<Room, 'grade' | 'count' | 'seed' | 'round'>)
  * 1 問の時間 (秒)。3・4 年生むけは短め、5・6 年生むけ (計算が多い) は長め。図があれば、図を読む時間を足す
  */
 export function timeLimit(level: Level, q: Pick<Question, 'svg' | 'text'>): number {
-  const base = GRADE[level] <= 4 ? 20 : 30;
+  const base = GRADE[level] <= 4 ? 40 : 50;
   return base + (q.svg ? 10 : 0) + (q.text.length > 120 ? 5 : 0);
 }
 

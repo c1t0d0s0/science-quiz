@@ -63,9 +63,9 @@ describe('たいせんの問題', () => {
   });
 
   it('時間は、5・6 年生むけと図のある問題が長い', () => {
-    expect(Battle.timeLimit('g3', { text: 'a' })).toBe(20);
-    expect(Battle.timeLimit('g6', { text: 'a' })).toBe(30);
-    expect(Battle.timeLimit('g6', { text: 'a', svg: '<svg/>' })).toBe(40);
+    expect(Battle.timeLimit('g3', { text: 'a' })).toBe(40);
+    expect(Battle.timeLimit('g6', { text: 'a' })).toBe(50);
+    expect(Battle.timeLimit('g6', { text: 'a', svg: '<svg/>' })).toBe(60);
   });
 
   it('作りかたが変わったか見分ける印', () => {
