@@ -18,8 +18,8 @@ const TICK_MS = 100;
 const gradeLabel = (grade: number) => LEVEL_LABEL[Battle.levelOf({ grade })];
 
 export const BATTLE_HOWTO = [
-  '2〜8人で、同じ問題に同時にこたえます。いちばん早く正解をえらんだ人が、その問題をとれます。',
-  'まちがえると「おてつき」で、その問題はお休み。とった問題が多い人の勝ち。同じ数なら、おてつきが少ない人が上です。',
+  '2〜8人で、同じ問題に同時にこたえます。答えは 1問に 1回だけ。えらんだら変えられません。',
+  'みんなが答えるか、時間切れになったら、正解が出ます。正解した数（正解率）が多い人の勝ち。同じ数なら、答えるまでにかかった時間の合計が短い人が上です。',
   '部屋を作った人（ホスト）が、学年と問題の数と分野をえらびます。3年生むけから6年生むけまで、学年のレベルに合わせた問題が出ます。',
   '部屋を作ったら、たいせんコードかQRコードを、ともだちに見せよう。',
 ];
@@ -60,6 +60,8 @@ const g = {
   timer: null as HTMLElement | null,
   buttons: [] as HTMLButtonElement[],
   feedback: null as HTMLElement | null,
+  /** 「答えた人 2/3」 */
+  waiting: null as HTMLElement | null,
 };
 let resultKey = '';
 let standingsEl: HTMLElement | null = null;
@@ -546,7 +548,7 @@ function startGame(r: Room): void {
   locked = false;
   picks.clear();
   view = 'playing';
-  g.scores = h('ol', { class: 'battle-scores', 'aria-label': 'とった問題の数' });
+  g.scores = h('ol', { class: 'battle-scores', 'aria-label': '正解した問題の数' });
   g.card = h('article', { class: 'card battle-card' });
   g.timer = h('span', { class: 'battle-timer', 'aria-label': 'のこり時間' });
   const quit = h(
@@ -579,19 +581,35 @@ function stopTick(): void {
   tick = undefined;
 }
 
+/**
+ * たいせん中の点数のならび。正解を発表した問題の分だけで数える (発表前に、点数の変化で正誤がわからないように)。
+ * 今の問題に答えた人には、名前の横に印をつける
+ */
 function renderScores(r: Room): void {
-  if (!g.scores) return;
+  if (!g.scores || !game) return;
   const seat = mySeat();
+  const q = r.q ?? 0;
+  const revealed = settledQ === q ? q + 1 : q;
   g.scores.replaceChildren(
-    ...Battle.standings(r).map((row) =>
-      h(
+    ...Battle.standings(r, game.questions.slice(0, revealed)).map((row) => {
+      const answered = settledQ !== q && Battle.answerOf(r, q, row.seat) !== null;
+      return h(
         'li',
-        { class: `battle-score${row.seat === seat ? ' is-me' : ''}${row.online ? '' : ' is-away'}` },
+        { class: `battle-score${row.seat === seat ? ' is-me' : ''}${row.online ? '' : ' is-away'}${answered ? ' is-answered' : ''}` },
         h('span', { class: 'battle-score-name' }, row.name),
-        h('b', { class: 'battle-score-num' }, String(row.points)),
-      ),
-    ),
+        answered ? h('span', { class: 'battle-score-done', 'aria-label': '答えた' }, '✓') : null,
+        h('b', { class: 'battle-score-num' }, String(row.correct)),
+      );
+    }),
   );
+}
+
+/** 今の問題に答えた人の数 (「答えた人 2 / 3」) */
+function renderWaiting(r: Room, q: number): void {
+  if (!g.waiting) return;
+  const { done, here } = Battle.answeredCount(r, q);
+  const text = settledQ === q ? '' : `答えた人 ${done} / ${here}`;
+  if (g.waiting.textContent !== text) g.waiting.textContent = text;
 }
 
 /** TICK_MS ごとと、部屋が変わるたびに動く */
@@ -605,7 +623,7 @@ function step(): void {
       counting = true;
       g.card.replaceChildren(
         h('p', { class: 'battle-count', 'aria-live': 'polite' }, left),
-        h('p', { class: 'battle-count-note' }, 'まもなく スタート！ 早く 正解した人が、その問題を とれるよ'),
+        h('p', { class: 'battle-count-note' }, 'まもなく スタート！ みんなが 答えたら、正解が 出るよ'),
       );
     }
     const el = g.card.querySelector('.battle-count');
@@ -618,6 +636,7 @@ function step(): void {
   const item = game.questions[q];
   if (!item) return;
   if (shownQ !== q) showQuestion(room, q);
+  renderWaiting(room, q);
 
   const level = Battle.levelOf(room);
   const qAt = room.qAt ?? 0;
@@ -657,6 +676,7 @@ function showQuestion(r: Room, q: number): void {
   });
   const box = h('div', { class: 'feedback', 'aria-live': 'polite' });
   g.feedback = box;
+  g.waiting = h('p', { class: 'battle-waiting', 'aria-live': 'polite' });
   timer.textContent = '';
   timer.classList.remove('is-low');
   card.replaceChildren(
@@ -671,15 +691,22 @@ function showQuestion(r: Room, q: number): void {
     paragraphs('q-text', item.text),
     ...(item.svg ? [figure(item.svg)] : []),
     h('div', { class: item.choices.some((c) => c.length > 14) ? 'choices choices-long' : 'choices' }, ...g.buttons),
+    g.waiting,
     box,
   );
   window.scrollTo(0, 0);
-  // 読みこみ直したとき: おてつきした問題は、お休みのまま
-  if (Battle.faulted(r, q, mySeat())) {
-    locked = true;
-    g.buttons.forEach((b) => (b.disabled = true));
-    feedback('おてつき！ この問題は お休み', 'feedback feedback-ng');
-  }
+  // 読みこみ直したとき: もう答えた問題は、答えをえらんだままにする
+  const mine = Battle.answerOf(r, q, mySeat());
+  if (mine) showPicked(q, mine.choice);
+}
+
+/** 答えをえらんだあと: えらんだボタンに印をつけて、正解の発表を待つ (正誤はまだ出さない) */
+function showPicked(q: number, index: number): void {
+  locked = true;
+  picks.set(q, index);
+  g.buttons.forEach((b) => (b.disabled = true));
+  g.buttons[index]?.classList.add('choice-picked');
+  feedback('答えたよ。みんなが 答えるのを まってね', 'feedback feedback-wait');
 }
 
 function feedback(title: string, cls: string): void {
@@ -691,20 +718,11 @@ function feedback(title: string, cls: string): void {
 function pick(index: number): void {
   if (locked || !room || !net || !code || !game || shownQ !== room.q || settledQ === shownQ) return;
   const q = shownQ;
-  const item = game.questions[q];
-  locked = true;
-  picks.set(q, index);
-  g.buttons.forEach((b) => (b.disabled = true));
-  if (index === item.answer) {
-    g.buttons[index].classList.add('choice-picked');
-    feedback('せいかい！ とれたかな…', 'feedback');
-    net.take(code, room.round, q).catch((e) => console.error(e));
-    return;
-  }
-  g.buttons[index].classList.add('choice-wrong');
-  g.buttons[index].append(mark(false, 'mark mark-choice'));
-  feedback('おてつき！ この問題は お休み', 'feedback feedback-ng');
-  void net.fault(code, q);
+  showPicked(q, index);
+  net.answer(code, room.round, q, index).catch((e) => {
+    console.error(e);
+    say('答えを 送れなかったよ（時間切れかも）');
+  });
 }
 
 function reveal(r: Room, q: number): void {
@@ -713,19 +731,27 @@ function reveal(r: Room, q: number): void {
   locked = true;
   const item = game.questions[q];
   g.buttons.forEach((b) => (b.disabled = true));
-  g.buttons[item.answer].classList.remove('choice-picked');
+  // 自分の答え (読みこみ直したときは、部屋に残っている答え)
+  const chosen = picks.get(q) ?? Battle.answerOf(r, q, mySeat())?.choice;
+  g.buttons.forEach((b) => b.classList.remove('choice-picked'));
   g.buttons[item.answer].classList.add('choice-correct');
   g.buttons[item.answer].append(mark(true, 'mark mark-choice'));
-  const take = Battle.takeOf(r, q);
-  const mine = Boolean(take && take.seat === mySeat());
-  const taker = take && r.players[take.seat];
-  const title = mine ? 'とった！' : taker ? `${taker.name}さんが とった！` : 'だれも とれなかった…';
-  g.feedback.className = mine ? 'feedback feedback-ok' : 'feedback feedback-ng';
+  if (chosen !== undefined && chosen !== item.answer) {
+    g.buttons[chosen]?.classList.add('choice-wrong');
+    g.buttons[chosen]?.append(mark(false, 'mark mark-choice'));
+  }
+  const ok = chosen === item.answer;
+  const title = ok ? '正解！' : chosen === undefined ? '時間切れ…' : 'ざんねん…';
+  const winners = Battle.playersList(r).filter((p) => Battle.answerOf(r, q, p.seat)?.choice === item.answer);
+  g.feedback.className = ok ? 'feedback feedback-ok' : 'feedback feedback-ng';
   g.feedback.replaceChildren(
     h('p', { class: 'feedback-title' }, title),
     h('p', { class: 'feedback-answer' }, '正解は ', withRuby('b', '', item.choices[item.answer])),
+    h('p', { class: 'battle-winners' }, winners.length ? `正解した人: ${winners.map((p) => p.name).join('・')}` : '正解した人は いなかったよ'),
     paragraphs('explain', item.explanation),
   );
+  renderWaiting(r, q);
+  renderScores(r);
   if (g.timer) {
     g.timer.textContent = '';
     g.timer.classList.remove('is-low');
@@ -740,41 +766,39 @@ function onKey(e: KeyboardEvent): void {
 }
 
 // ---- 結果 ----
-function standingsList(r: Room): HTMLElement {
+function standingsList(r: Room, questions: Question[]): HTMLElement {
   const seat = mySeat();
   return h(
     'ol',
     { class: 'battle-standings' },
-    ...Battle.standings(r).map((row) =>
+    ...Battle.standings(r, questions).map((row) =>
       h(
         'li',
         { class: `battle-standing${row.seat === seat ? ' is-me' : ''}${row.online ? '' : ' is-away'}${row.rank === 1 ? ' is-top' : ''}` },
         h('span', { class: 'battle-rank' }, row.rank ? `${row.rank}位` : '—'),
         h('span', { class: 'battle-standing-name' }, row.name, row.seat === seat ? h('span', { class: 'sr-only' }, '（あなた）') : null),
-        h('span', { class: 'battle-standing-num' }, h('b', {}, String(row.points)), '問'),
-        h('span', { class: 'battle-standing-faults' }, `おてつき ${row.faults}`),
+        h('span', { class: 'battle-standing-num' }, h('b', {}, String(row.correct)), '問正解', h('span', { class: 'battle-rate' }, `（${Battle.rateText(row.rate)}）`)),
+        h('span', { class: 'battle-standing-faults' }, `合計 ${Battle.timeText(row.time)}`),
       ),
     ),
   );
 }
 
 function reviewItem(r: Room, q: Question, index: number): HTMLElement {
-  const take = Battle.takeOf(r, index);
-  const seat = mySeat();
-  const mine = Boolean(take && take.seat === seat);
-  const taker = take && r.players[take.seat];
-  const chosen = picks.get(index);
-  const wrong = chosen !== undefined && chosen !== q.answer;
+  const chosen = picks.get(index) ?? Battle.answerOf(r, index, mySeat())?.choice;
+  const ok = chosen === q.answer;
+  const wrong = chosen !== undefined && !ok;
+  const winners = Battle.playersList(r).filter((p) => Battle.answerOf(r, index, p.seat)?.choice === q.answer).length;
   return h(
     'details',
-    { class: mine ? 'review review-ok' : 'review review-ng', open: wrong },
+    { class: ok ? 'review review-ok' : 'review review-ng', open: !ok },
     h(
       'summary',
       { class: 'review-head' },
-      take ? mark(mine, 'mark mark-small') : null,
+      mark(ok, 'mark mark-small'),
       h('span', { class: 'review-num' }, `${index + 1}問目`),
       h('span', { class: 'chip chip-small' }, CATEGORY_LABEL[q.category]),
-      h('span', { class: 'review-result' }, mine ? 'とった' : taker ? `${taker.name}さん` : 'だれも とれなかった'),
+      h('span', { class: 'review-result' }, `${ok ? '正解' : chosen === undefined ? '答えなかった' : 'まちがい'}・正解した人 ${winners}人`),
     ),
     h(
       'div',
@@ -798,19 +822,19 @@ function renderResult(r: Room): void {
   if (!root || !code) return;
   const key = `${code}:${r.round}:${r.seed}`;
   // 同じ回の結果を出しているなら、順位表だけをかき直す (開いた解説はそのまま)
+  const questions = game && game.key === `${r.round}:${r.seed}` ? game.questions : r.seed ? Battle.makeGame(r) : [];
   if (view === 'result' && resultKey === key && standingsEl) {
-    const next = standingsList(r);
+    const next = standingsList(r, questions);
     standingsEl.replaceWith(next);
     standingsEl = next;
     return;
   }
   view = 'result';
   resultKey = key;
-  const questions = game && game.key === `${r.round}:${r.seed}` ? game.questions : r.seed ? Battle.makeGame(r) : [];
-  const rows = Battle.standings(r);
+  const rows = Battle.standings(r, questions);
   const me = rows.find((row) => row.seat === mySeat());
-  const title = !me ? 'たいせん おわり！' : me.rank === 1 ? 'ゆうしょう！ おめでとう！' : me.points > 0 ? `${me.rank}位！ よく がんばったね` : 'おつかれさま！ 次は とれるかな';
-  standingsEl = standingsList(r);
+  const title = !me ? 'たいせん おわり！' : me.rank === 1 ? 'ゆうしょう！ おめでとう！' : me.correct > 0 ? `${me.rank}位！ よく がんばったね` : 'おつかれさま！ 次は 正解できるかな';
+  standingsEl = standingsList(r, questions);
   const host = isHost();
   say(host ? '' : 'ホストが「もう一度」を おすと、待合室に もどるよ');
   root.replaceChildren(
@@ -826,7 +850,9 @@ function renderResult(r: Room): void {
           'div',
           {},
           h('h2', { class: 'result-title' }, title),
-          me ? h('p', { class: 'result-score' }, `${questions.length}問中 `, h('b', {}, String(me.points)), '問 とった') : null,
+          me
+            ? h('p', { class: 'result-score' }, `${questions.length}問中 `, h('b', {}, String(me.correct)), `問 正解（${Battle.rateText(me.rate)}）・合計 ${Battle.timeText(me.time)}`)
+            : null,
         ),
       ),
       h('section', { 'aria-labelledby': 'battle-rank-title' }, h('h2', { id: 'battle-rank-title' }, '順位'), standingsEl),

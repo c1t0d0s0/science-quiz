@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as Battle from '../src/core/battle';
 import type { Room } from '../src/core/battle';
-import { CATEGORIES, FIELDS, LEVELS } from '../src/core/quiz';
+import { CATEGORIES, FIELDS, LEVELS, type Question } from '../src/core/quiz';
 import { rngFromString } from '../src/core/rng';
 
 const room = (over: Partial<Room> = {}): Room => ({
@@ -16,10 +16,16 @@ const room = (over: Partial<Room> = {}): Room => ({
     1: { uid: 'k', name: 'けんた', joinedAt: 2, online: true },
     2: { uid: 'm', name: 'みさき', joinedAt: 3, online: false },
   },
-  takes: {},
-  faults: {},
+  starts: { 0: 100_000, 1: 200_000, 2: 300_000 },
+  answers: {},
   ...over,
 });
+
+/** 正解の位置だけを決めた問題 (4 年生むけ・図なしなので、1 問の時間は 40 秒) */
+const questions = (answers: number[]) => answers.map((answer) => ({ answer, text: 'a', choices: ['a', 'b', 'c', 'd'] }) as unknown as Question);
+
+/** 答え。at は問題を出してから何ミリ秒後か */
+const ans = (q: number, choice: number, after: number, round = 1) => ({ choice, round, at: room().starts[q] + after });
 
 describe('出す分野', () => {
   it('分野のならびと cats の値は、行き来できる', () => {
@@ -121,33 +127,55 @@ describe('部屋のきまり', () => {
     expect(Battle.seatOf(room(), 'x')).toBeNull();
   });
 
-  it('だれかがとるか、今いる人がみんなおてつきしたら、その問題はおしまい', () => {
+  it('今いる人がみんな答えたら、その問題はおしまい', () => {
     expect(Battle.settled(room(), 0)).toBe(false);
-    expect(Battle.settled(room({ takes: { 0: { seat: '1', round: 1 } } }), 0)).toBe(true);
-    // 前の回にとったものは数えない
-    expect(Battle.settled(room({ takes: { 0: { seat: '1', round: 0 } } }), 0)).toBe(false);
-    // いない人 (みさき) のおてつきは待たない
-    expect(Battle.settled(room({ faults: { 0: { 0: true } } }), 0)).toBe(false);
-    expect(Battle.settled(room({ faults: { 0: { 0: true, 1: true } } }), 0)).toBe(true);
+    expect(Battle.settled(room({ answers: { 0: { 0: ans(0, 1, 1000) } } }), 0)).toBe(false);
+    expect(Battle.settled(room({ answers: { 0: { 0: ans(0, 1, 1000), 1: ans(0, 2, 2000) } } }), 0)).toBe(true);
+    // いない人 (みさき) は待たない。前の回の答えは数えない
+    expect(Battle.settled(room({ answers: { 0: { 0: ans(0, 1, 1000), 1: ans(0, 2, 2000, 0) } } }), 0)).toBe(false);
+    expect(Battle.answeredCount(room({ answers: { 0: { 0: ans(0, 1, 1000), 2: ans(0, 1, 1000) } } }), 0)).toEqual({ done: 1, here: 2 });
   });
 
-  it('順位: とった数が多い順、同じならおてつきが少ない順。出た人は順位なしで最後', () => {
+  it('答えるまでの時間: 制限時間が上限で、答えなかった問題は制限時間', () => {
+    const r = room({ answers: { 0: { 0: ans(0, 1, 12_345) }, 1: { 0: ans(1, 1, 99_000) } } });
+    expect(Battle.answerTime(r, 0, '0', 40_000)).toBe(12_345);
+    expect(Battle.answerTime(r, 1, '0', 40_000)).toBe(40_000);
+    expect(Battle.answerTime(r, 2, '0', 40_000)).toBe(40_000);
+    // 前の回の答えは数えない
+    expect(Battle.answerTime(room({ answers: { 0: { 0: ans(0, 1, 5000, 0) } } }), 0, '0', 40_000)).toBe(40_000);
+  });
+
+  it('順位: 正解数が多い順、同じなら時間の合計が短い順。出た人は順位なしで最後', () => {
+    const qs = questions([1, 2, 3]);
     const rows = Battle.standings(
       room({
-        takes: { 0: { seat: '1', round: 1 }, 1: { seat: '0', round: 1 }, 2: { seat: '1', round: 1 }, 3: { seat: '2', round: 1 } },
-        faults: { 3: { 1: true }, 4: { 0: true } },
+        answers: {
+          // あおい: 2 問正解・合計 10+20+40 秒、けんた: 2 問正解・合計 5+5+40 秒、みさき (出た): 3 問正解
+          0: { 0: ans(0, 1, 10_000), 1: ans(0, 1, 5000), 2: ans(0, 1, 1000) },
+          1: { 0: ans(1, 2, 20_000), 1: ans(1, 2, 5000), 2: ans(1, 2, 1000) },
+          2: { 2: ans(2, 3, 1000) },
+        },
       }),
+      qs,
     );
-    expect(rows.map((r) => [r.name, r.points, r.faults, r.rank])).toEqual([
-      ['けんた', 2, 1, 1],
-      ['あおい', 1, 1, 2],
-      ['みさき', 1, 0, null],
+    expect(rows.map((r) => [r.name, r.correct, r.time, r.rank])).toEqual([
+      ['けんた', 2, 50_000, 1],
+      ['あおい', 2, 70_000, 2],
+      ['みさき', 3, 3000, null],
     ]);
-    expect(rows[0].taken).toEqual([0, 2]);
+    expect(rows[0].rate).toBeCloseTo(2 / 3);
+    expect(rows[0].right).toEqual([0, 1]);
   });
 
-  it('同じ数・同じおてつきなら同じ順位', () => {
-    const rows = Battle.standings(room({ takes: { 0: { seat: '1', round: 1 }, 1: { seat: '0', round: 1 } } }));
+  it('正解数も時間も同じなら同じ順位', () => {
+    const rows = Battle.standings(room({ answers: { 0: { 0: ans(0, 1, 3000), 1: ans(0, 1, 3000) } } }), questions([1]));
     expect(rows.filter((r) => r.online).map((r) => r.rank)).toEqual([1, 1]);
+  });
+
+  it('正解率と時間の書き方', () => {
+    expect(Battle.rateText(0.8)).toBe('80%');
+    expect(Battle.rateText(2 / 3)).toBe('67%');
+    expect(Battle.timeText(45_230)).toBe('45.2秒');
+    expect(Battle.timeText(83_000)).toBe('1分23秒');
   });
 });

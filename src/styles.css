@@ -2591,6 +2591,38 @@ rt {
   color: var(--red);
 }
 
+/* 正解率のたいせん: 答えた人の数、答えた印、正解した人 */
+.battle-waiting {
+  min-height: 1.5em;
+  margin-top: 0.6rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.battle-score-done {
+  color: var(--rule);
+  font-weight: 700;
+}
+
+.battle-winners {
+  margin-top: 0.3rem;
+  font-weight: 700;
+}
+
+.battle-rate {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* 答えたあと、正解の発表を待っているとき (まだ正誤はわからないので、赤にしない) */
+.feedback-wait .feedback-title {
+  color: var(--ink);
+  font-size: 1.125rem;
+}
+
 .battle-card .choice-picked {
   background: var(--mark-soft);
   box-shadow: 0 0 0 2px var(--ink);

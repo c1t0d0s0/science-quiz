@@ -1,6 +1,7 @@
 // --- 理科たいせん: きまり ---
-// 2〜8 人が同じ部屋に入り、同じ問題を同時に見て、いちばん早く正解をえらんだ人がその問題をとる。
-// まちがえた人 (おてつき) は、その問題はお休み。問題は部屋の学年 (3〜6 年生むけ) のジェネレーターから作る。
+// 2〜8 人が同じ部屋に入り、同じ問題を同時に見て、それぞれ 1 回だけ答える。答えた時点では正誤を出さず、
+// 今いる人がみんな答えるか時間切れになったら、正解を出す。最後に、正解数 (正解率) が多い順、
+// 同じなら答えるまでにかかった時間の合計が短い順に順位をつける。問題は部屋の学年 (3〜6 年生むけ) のジェネレーターから作る。
 // 通信も画面もさわらない関数だけを置く (kanji-quiz の意味かるた たいせん と同じ形)。
 //
 // scienceBattles/{code}                 code = 0 で始まらない 5 けたの数
@@ -10,8 +11,8 @@
 //   seed, status: 'waiting' | 'playing' | 'finished', startAt
 //   q: 出している問題 (0 から), qAt: その問題を出す時刻 (サーバーの時刻)
 //   players/{seat}: { uid, name, joinedAt, online }      seat = 0..7
-//   takes/{q}: { seat, round, at }                       いちばん早く正解した人
-//   faults/{q}/{seat}: true                              おてつき
+//   starts/{q}: その問題を出した時刻 (サーバーの時刻。答えるまでの時間を出すのに使う)
+//   answers/{q}/{seat}: { choice: 0..3, round, at }       その人の答え (1 回だけ。at はサーバーの時刻)
 import { toQuestion } from './daily';
 import { CATEGORIES, CATEGORY_LABEL, GRADE, LEVELS, type Category, type Level, type Question } from './quiz';
 import { GENERATORS } from '../questions';
@@ -32,8 +33,9 @@ export const GRADES = LEVELS.map((level) => GRADE[level]);
  * 古いページの人には、読みこみ直してもらう (ちがう問題を見たり、時間切れがずれたりするので)。
  * 2: 1 問の時間を 20 秒ふやした
  * 3: 出す分野をえらべるようにした
+ * 4: 早おしをやめて、正解率と時間で順位をつけるようにした
  */
-export const RULES_VERSION = 3;
+export const RULES_VERSION = 4;
 
 /** 全部の分野 (cats の値) */
 export const ALL_CATS = (1 << CATEGORIES.length) - 1;
@@ -61,8 +63,8 @@ export interface Player {
   online?: boolean;
 }
 
-export interface Take {
-  seat: string;
+export interface Answer {
+  choice: number;
   round: number;
   at?: number;
 }
@@ -83,8 +85,10 @@ export interface Room {
   q?: number;
   qAt?: number;
   players: Record<string, Player>;
-  takes: Record<string, Take>;
-  faults: Record<string, Record<string, boolean>>;
+  /** 問題 (0 から) → その問題を出した時刻 */
+  starts: Record<string, number>;
+  /** 問題 (0 から) → 席 → 答え */
+  answers: Record<string, Record<string, Answer>>;
 }
 
 /** 部屋の学年のレベル (g3〜g6) */
@@ -196,19 +200,33 @@ export function playersList(room: Room): SeatedPlayer[] {
     .sort((a, b) => (a.joinedAt ?? 0) - (b.joinedAt ?? 0));
 }
 
-/** この回の、q 問目をとった人。まだなら null */
-export function takeOf(room: Room, q: number): Take | null {
-  const take = room.takes?.[q];
-  return take && take.round === room.round ? take : null;
+/** この回の、その人の q 問目の答え。まだなら null */
+export function answerOf(room: Room, q: number, seat: string | null): Answer | null {
+  const answer = seat === null ? undefined : room.answers?.[q]?.[seat];
+  return answer && answer.round === room.round ? answer : null;
 }
 
-export const faulted = (room: Room, q: number, seat: string | null) => seat !== null && room.faults?.[q]?.[seat] === true;
-
-/** q 問目が終わったか: だれかがとった、または、今いる人がみんなおてつきした */
-export function settled(room: Room, q: number): boolean {
-  if (takeOf(room, q)) return true;
+/** q 問目に、今いる人のうち何人が答えたか */
+export function answeredCount(room: Room, q: number): { done: number; here: number } {
   const here = playersList(room).filter((p) => p.online);
-  return here.length > 0 && here.every((p) => faulted(room, q, p.seat));
+  return { done: here.filter((p) => answerOf(room, q, p.seat)).length, here: here.length };
+}
+
+/** q 問目が終わったか: 今いる人がみんな答えた (時間切れは画面の方で見る) */
+export function settled(room: Room, q: number): boolean {
+  const { done, here } = answeredCount(room, q);
+  return here > 0 && done === here;
+}
+
+/**
+ * q 問目に答えるまでにかかった時間 (ミリ秒)。問題を出した時刻から答えた時刻まで。
+ * 制限時間 (limitMs) より長いときや、答えていないときは、制限時間にする
+ */
+export function answerTime(room: Room, q: number, seat: string, limitMs: number): number {
+  const answer = answerOf(room, q, seat);
+  const start = room.starts?.[q];
+  if (!answer || answer.at === undefined || start === undefined) return limitMs;
+  return Math.min(limitMs, Math.max(0, answer.at - start));
 }
 
 export interface Standing {
@@ -216,48 +234,55 @@ export interface Standing {
   uid: string;
   name: string;
   online: boolean;
-  /** とった問題の数 */
-  points: number;
-  faults: number;
-  /** とった問題 (0 から) */
-  taken: number[];
+  /** 正解した問題の数 */
+  correct: number;
+  /** 正解率 (0〜1) */
+  rate: number;
+  /** 答えるまでにかかった時間の合計 (ミリ秒。答えなかった問題は制限時間) */
+  time: number;
+  /** 正解した問題 (0 から) */
+  right: number[];
   rank: number | null;
 }
 
 /**
- * 順位表。とった数が多い順、同じならおてつきが少ない順 (どちらも同じなら同じ順位)。
- * 部屋を出た人は、順位をつけずに最後にならべる
+ * 順位表。正解数が多い順 (= 正解率が高い順)、同じなら時間の合計が短い順 (どちらも同じなら同じ順位)。
+ * 部屋を出た人は、順位をつけずに最後にならべる。questions は、この回の問題 (makeGame の結果)
  */
-export function standings(room: Room): Standing[] {
-  const rows: Standing[] = playersList(room).map((p) => ({
-    seat: p.seat,
-    uid: p.uid,
-    name: p.name,
-    online: Boolean(p.online),
-    points: 0,
-    faults: 0,
-    taken: [],
-    rank: null,
-  }));
-  const bySeat = new Map(rows.map((row) => [row.seat, row]));
-  for (let q = 0; q < room.count; q++) {
-    const take = takeOf(room, q);
-    const row = take && bySeat.get(take.seat);
-    if (row) {
-      row.points++;
-      row.taken.push(q);
-    }
-    Object.keys(room.faults?.[q] ?? {}).forEach((seat) => {
-      const faultRow = bySeat.get(seat);
-      if (faultRow && faulted(room, q, seat)) faultRow.faults++;
-    });
-  }
-  rows.sort((a, b) => Number(b.online) - Number(a.online) || b.points - a.points || a.faults - b.faults);
+export function standings(room: Room, questions: Question[]): Standing[] {
+  const level = levelOf(room);
+  const rows: Standing[] = playersList(room).map((p) => {
+    const right = questions.flatMap((question, q) => (answerOf(room, q, p.seat)?.choice === question.answer ? [q] : []));
+    const time = questions.reduce((sum, question, q) => sum + answerTime(room, q, p.seat, timeLimit(level, question) * 1000), 0);
+    return {
+      seat: p.seat,
+      uid: p.uid,
+      name: p.name,
+      online: Boolean(p.online),
+      correct: right.length,
+      rate: questions.length > 0 ? right.length / questions.length : 0,
+      time,
+      right,
+      rank: null,
+    };
+  });
+  rows.sort((a, b) => Number(b.online) - Number(a.online) || b.correct - a.correct || a.time - b.time);
   let prev: Standing | null = null;
   rows.forEach((row, i) => {
     if (!row.online) return;
-    row.rank = prev && prev.points === row.points && prev.faults === row.faults ? prev.rank : i + 1;
+    row.rank = prev && prev.correct === row.correct && prev.time === row.time ? prev.rank : i + 1;
     prev = row;
   });
   return rows;
+}
+
+/** 正解率の書き方 (「80%」) */
+export const rateText = (rate: number) => `${Math.round(rate * 100)}%`;
+
+/** 時間の書き方 (「1分23秒」「45.2秒」)。1 分より短いときは 0.1 秒まで */
+export function timeText(ms: number): string {
+  const sec = ms / 1000;
+  if (sec < 60) return `${(Math.floor(sec * 10) / 10).toFixed(1)}秒`;
+  const whole = Math.floor(sec);
+  return `${Math.floor(whole / 60)}分${whole % 60}秒`;
 }

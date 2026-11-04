@@ -24,7 +24,7 @@ import { firebaseConfig, useEmulator } from './config';
 // このアプリの部屋 (同じ Firebase プロジェクトの kanjiBattles・mathBattles などとは分ける)
 const ROOT = 'scienceBattles';
 
-/** Realtime Database は席 (0..7) を配列で返すことがあるので、いつも { 席: 人 } の形にする */
+/** Realtime Database は席 (0..7) や問題の番号を配列で返すことがあるので、いつも { 番号: 中身 } の形にする */
 export function normalizeRoom(val: unknown): Room | null {
   if (!val || typeof val !== 'object') return null;
   const raw = val as Record<string, unknown>;
@@ -32,15 +32,15 @@ export function normalizeRoom(val: unknown): Room | null {
   Object.entries((raw.players as Record<string, Room['players'][string]>) ?? {}).forEach(([seat, p]) => {
     if (p) players[seat] = p;
   });
-  const faults: Room['faults'] = {};
-  Object.entries((raw.faults as Record<string, Record<string, boolean>>) ?? {}).forEach(([q, seats]) => {
-    if (seats) faults[q] = Object.fromEntries(Object.entries(seats).filter(([, v]) => v));
+  const starts: Room['starts'] = {};
+  Object.entries((raw.starts as Record<string, number>) ?? {}).forEach(([q, at]) => {
+    if (typeof at === 'number') starts[q] = at;
   });
-  const takes: Room['takes'] = {};
-  Object.entries((raw.takes as Record<string, Room['takes'][string]>) ?? {}).forEach(([q, take]) => {
-    if (take) takes[q] = take;
+  const answers: Room['answers'] = {};
+  Object.entries((raw.answers as Record<string, Record<string, Room['answers'][string][string]>>) ?? {}).forEach(([q, seats]) => {
+    if (seats) answers[q] = Object.fromEntries(Object.entries(seats).filter(([, a]) => a));
   });
-  return { ...(raw as unknown as Room), players, faults, takes };
+  return { ...(raw as unknown as Room), players, starts, answers };
 }
 
 export type JoinResult = 'ok' | 'missing' | 'started' | 'full' | 'version';
@@ -52,8 +52,7 @@ export interface BattleNet {
   create(grade: number, count: number, cats: number, name: string): Promise<string>;
   join(code: string, name: string): Promise<JoinResult>;
   watch(code: string, cb: (room: Room | null) => void): () => void;
-  take(code: string, round: number, q: number): Promise<boolean>;
-  fault(code: string, q: number): Promise<void>;
+  answer(code: string, round: number, q: number, choice: number): Promise<void>;
   start(code: string): Promise<void>;
   advance(code: string, q: number): Promise<void>;
   end(code: string): Promise<void>;
@@ -180,34 +179,23 @@ async function open(): Promise<BattleNet> {
       return onValue(roomRef(code), (snap) => cb(normalizeRoom(snap.val())), () => cb(null));
     },
 
-    // q 問目をとる (ほかの人のほうが早ければとれない)。とれたら true
-    async take(code, round, q) {
+    // q 問目に答える (1 回だけ。答えた時刻はサーバーの時刻)
+    async answer(code, round, q, choice) {
       const seat = mySeat.get(code);
-      if (!seat) return false;
-      const result = await runTransaction(
-        ref(d, `${ROOT}/${code}/takes/${q}`),
-        (current) => (current ? undefined : { seat, round, at: serverTimestamp() }),
-        { applyLocally: false },
-      ).catch(() => null);
-      const take = result?.snapshot.val();
-      return Boolean(result?.committed && take && take.seat === seat);
-    },
-
-    // q 問目でおてつき
-    async fault(code, q) {
-      const seat = mySeat.get(code);
-      if (seat) await set(ref(d, `${ROOT}/${code}/faults/${q}/${seat}`), true).catch(() => {});
+      if (!seat) return;
+      await set(ref(d, `${ROOT}/${code}/answers/${q}/${seat}`), { choice, round, at: serverTimestamp() });
     },
 
     // ホストだけ: 新しい問題で、カウントダウンから始める
     async start(code) {
       const startAt = serverNow() + Battle.COUNTDOWN_MS;
-      await update(roomRef(code), { seed: Battle.makeSeed(), status: 'playing', startAt, q: 0, qAt: startAt, takes: null, faults: null });
+      await update(roomRef(code), { seed: Battle.makeSeed(), status: 'playing', startAt, q: 0, qAt: startAt, starts: { 0: startAt }, answers: null });
     },
 
     // ホストだけ: 正解を見せたあとで、次の問題へ
     async advance(code, q) {
-      await update(roomRef(code), { q, qAt: serverNow() + Battle.REVEAL_MS });
+      const qAt = serverNow() + Battle.REVEAL_MS;
+      await update(roomRef(code), { q, qAt, [`starts/${q}`]: qAt });
     },
 
     // ホストだけ: この回はおしまい
@@ -217,7 +205,7 @@ async function open(): Promise<BattleNet> {
 
     // ホストだけ: 同じ部屋の待合室にもどる
     async rematch(code, round) {
-      await update(roomRef(code), { round: round + 1, status: 'waiting', seed: '', takes: null, faults: null });
+      await update(roomRef(code), { round: round + 1, status: 'waiting', seed: '', starts: null, answers: null });
     },
 
     // ホストだけ: 待合室で、学年・問題の数・分野を変える
